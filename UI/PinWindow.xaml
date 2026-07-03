@@ -1,0 +1,82 @@
+<Window x:Class="MyQuicker.UI.PinWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PinWindow"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ResizeMode="CanResize"
+        WindowStartupLocation="Manual"
+        MinWidth="40"
+        MinHeight="40"
+        SnapsToDevicePixels="True"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <!--
+        两层结构，边框向外生长、不侵占图片面积：
+        · PinBorder 铺满整窗，BorderThickness 绘制在最外圈（边框层）。
+        · Image 用 Margin=border 向内缩，保证图片内容面积恒为 imgW×imgH。
+        两层均 IsHitTestVisible=False，命中测试落到 Window（拖拽 / 右键菜单）。
+        HorizontalAlignment/VerticalAlignment=Center：旋转 90/270 时图片在
+        互换后的窗口内居中渲染，窗口紧贴外接矩形、无留白。
+    -->
+    <Grid x:Name="RootGrid">
+        <Border x:Name="PinBorder"
+                Background="Transparent"
+                BorderBrush="Gray"
+                BorderThickness="0"
+                IsHitTestVisible="False" />
+
+        <Image x:Name="PinImage"
+               Stretch="None"
+               IsHitTestVisible="False"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Margin="0"
+               RenderTransformOrigin="0.5,0.5">
+            <Image.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="ScaleTransform" ScaleX="1" ScaleY="1" />
+                    <RotateTransform x:Name="RotateTransform" Angle="0" />
+                </TransformGroup>
+            </Image.RenderTransform>
+            <Image.Effect>
+                <DropShadowEffect x:Name="ShadowEffect"
+                                  Color="Black"
+                                  BlurRadius="14"
+                                  ShadowDepth="5"
+                                  Opacity="0.5"
+                                  Direction="315" />
+            </Image.Effect>
+        </Image>
+    </Grid>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="置顶" IsCheckable="True" IsChecked="True"
+                      Click="Topmost_Click" />
+            <MenuItem Header="显示阴影" IsCheckable="True" IsChecked="True"
+                      Click="Shadow_Click" />
+            <MenuItem Header="显示边界" IsCheckable="True"
+                      Click="Border_Click" />
+            <MenuItem Header="重置大小" Click="ResetSize_Click" />
+            <MenuItem Header="不透明度">
+                <MenuItem Header="0.3" Tag="0.3" Click="Opacity_Click" />
+                <MenuItem Header="0.5" Tag="0.5" Click="Opacity_Click" />
+                <MenuItem Header="0.8" Tag="0.8" Click="Opacity_Click" />
+                <MenuItem Header="1.0" Tag="1.0" Click="Opacity_Click" IsChecked="True" />
+            </MenuItem>
+            <MenuItem Header="旋转" Click="Rotate_Click" />
+            <MenuItem Header="镜像" Click="Mirror_Click" />
+            <Separator />
+            <MenuItem Header="复制图片" Click="CopyImage_Click" />
+            <MenuItem Header="另存为..." Click="SaveAs_Click" />
+            <MenuItem Header="作为文件打开" Click="OpenAsFile_Click" />
+            <Separator />
+            <MenuItem Header="关闭" Click="Close_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+</Window>
