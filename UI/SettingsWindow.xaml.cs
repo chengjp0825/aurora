@@ -45,7 +45,7 @@ public partial class SettingsWindow : Window
 
         // Snipping
         SnippingDragThresholdBox.Text = _snipping.DragThreshold.ToString(CultureInfo.InvariantCulture);
-        SnippingMaskColorBox.Text = _snipping.MaskColor;
+        SnippingMaskAlphaBox.Text = _snipping.MaskAlpha.ToString(CultureInfo.InvariantCulture);
         SnippingBorderColorBox.Text = _snipping.BorderColor;
         AfterScreenshotCombo.SelectedIndex = (int)_snipping.AfterScreenshot;
         CaptureScopeCombo.SelectedIndex = (int)_snipping.CaptureScope;
@@ -69,7 +69,6 @@ public partial class SettingsWindow : Window
 
     private void WireColorPreviews()
     {
-        WireColorPreview(SnippingMaskColorBox, SnippingMaskColorPreview);
         WireColorPreview(SnippingBorderColorBox, SnippingBorderColorPreview);
         WireColorPreview(MenuBackgroundBox, MenuBackgroundPreview);
         WireColorPreview(MenuButtonBgBox, MenuButtonBgPreview);
@@ -77,17 +76,42 @@ public partial class SettingsWindow : Window
         WireColorPreview(PinBorderColorBox, PinBorderColorPreview);
     }
 
-    /// <summary>把 TextBox 的颜色串实时映射到预览色块；无效值清空预览。</summary>
+    /// <summary>把 TextBox 的颜色串实时映射到预览色块；点色块弹 ColorDialog 选色。</summary>
     private static void WireColorPreview(System.Windows.Controls.TextBox box, System.Windows.Controls.Border preview)
     {
         UpdateColorPreview(box, preview);
         box.TextChanged += (s, e) => UpdateColorPreview(box, preview);
+        preview.MouseLeftButtonDown += (s, e) => OpenColorPicker(box);
     }
 
     private static void UpdateColorPreview(System.Windows.Controls.TextBox box, System.Windows.Controls.Border preview)
     {
         try { preview.Background = BrushHelper.ToBrush(box.Text); }
-        catch { preview.Background = null; }
+        catch { preview.Background = System.Windows.Media.Brushes.Transparent; } // 透明保命中（点色块选色）
+    }
+
+    /// <summary>点色块弹 WinForms ColorDialog 选色；保留当前 alpha（对话框不支持选 alpha），返回 #AARRGGBB 写回 TextBox。</summary>
+    private static void OpenColorPicker(System.Windows.Controls.TextBox box)
+    {
+        byte alpha = 255;
+        System.Windows.Media.Color current = System.Windows.Media.Colors.Black;
+        try
+        {
+            if (BrushHelper.ToBrush(box.Text) is System.Windows.Media.SolidColorBrush sc)
+            {
+                current = sc.Color;
+                alpha = current.A;
+            }
+        }
+        catch { }
+
+        var dlgColor = System.Drawing.Color.FromArgb(alpha, current.R, current.G, current.B);
+        using var dlg = new System.Windows.Forms.ColorDialog { FullOpen = true, Color = dlgColor };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            var c = dlg.Color;
+            box.Text = $"#{alpha:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+        }
     }
 
     private static int ToIndex(ActionSettings s)
@@ -124,7 +148,7 @@ public partial class SettingsWindow : Window
 
         // Snipping
         _snipping.DragThreshold = double.Parse(SnippingDragThresholdBox.Text, CultureInfo.InvariantCulture);
-        _snipping.MaskColor = SnippingMaskColorBox.Text;
+        _snipping.MaskAlpha = double.Parse(SnippingMaskAlphaBox.Text, CultureInfo.InvariantCulture);
         _snipping.BorderColor = SnippingBorderColorBox.Text;
         _snipping.AfterScreenshot = (SnippingAfterScreenshot)AfterScreenshotCombo.SelectedIndex;
         _snipping.CaptureScope = (SnippingCaptureScope)CaptureScopeCombo.SelectedIndex;
@@ -165,6 +189,8 @@ public partial class SettingsWindow : Window
     {
         if (!double.TryParse(SnippingDragThresholdBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
         { error = "“点击/拖拽阈值”需为数字。"; return false; }
+        if (!double.TryParse(SnippingMaskAlphaBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double ma) || ma < 0 || ma > 1)
+        { error = "“暗罩浓度”需为 0~1 的数字。"; return false; }
         if (!double.TryParse(MenuWidthBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
         { error = "“窗口宽度”需为数字。"; return false; }
         if (!double.TryParse(MenuHeightBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
@@ -174,7 +200,7 @@ public partial class SettingsWindow : Window
         if (!double.TryParse(PinDefaultOpacityBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double op) || op < 0 || op > 1)
         { error = "“默认不透明度”需为 0~1 的数字。"; return false; }
 
-        if (!IsValidColor(SnippingMaskColorBox) || !IsValidColor(SnippingBorderColorBox) ||
+        if (!IsValidColor(SnippingBorderColorBox) ||
             !IsValidColor(MenuBackgroundBox) || !IsValidColor(MenuButtonBgBox) ||
             !IsValidColor(MenuButtonHoverBgBox) || !IsValidColor(PinBorderColorBox))
         { error = "颜色字段需为 #AARRGGBB 或命名色（如 Black）。"; return false; }

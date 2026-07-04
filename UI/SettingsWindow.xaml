@@ -133,6 +133,22 @@
                               ColumnHeaderHeight="40"
                               RowHeight="38">
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="图标" Width="56">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                                   Text="{Binding Icon, Converter={StaticResource HexToGlyphConverter}}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Icon, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FlatTextBox}"
+                                                 HorizontalContentAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*"
                                                 EditingElementStyle="{StaticResource FlatTextBox}" />
                             <DataGridTextColumn Header="命令" Binding="{Binding Command}" Width="2*"
@@ -175,13 +191,11 @@
                                 <ColumnDefinition Width="200" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource FieldTitle}" Text="暗罩颜色" />
-                                <TextBlock Style="{StaticResource FieldDesc}" Text="选区外的遮罩色（#AARRGGBB）" />
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="暗罩浓度" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="0~1，越大越暗" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBox x:Name="SnippingMaskColorBox" Style="{StaticResource FlatTextBox}" Width="158" />
-                                <Border x:Name="SnippingMaskColorPreview" Style="{StaticResource ColorSwatch}" />
-                            </StackPanel>
+                            <TextBox Grid.Column="1" x:Name="SnippingMaskAlphaBox"
+                                     Style="{StaticResource FlatTextBox}" Width="200" HorizontalAlignment="Right" />
                         </Grid>
 
                         <Grid Margin="0,0,0,12">

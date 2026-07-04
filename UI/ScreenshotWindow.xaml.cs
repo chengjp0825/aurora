@@ -61,7 +61,9 @@ public partial class ScreenshotWindow : Window
         // 红框厚度（2px）与覆盖层背景色（Black）已硬编码，不再可配。
         var snipping = SettingsManager.Instance.Settings.Snipping;
         Background = System.Windows.Media.Brushes.Black;
-        MaskPath.Fill = BrushHelper.ToBrush(snipping.MaskColor);
+        // 暗罩恒为黑色，浓度（alpha）可配：0.4 → #66000000。
+        MaskPath.Fill = new SolidColorBrush(System.Windows.Media.Color.FromArgb(
+            (byte)(255 * snipping.MaskAlpha), 0, 0, 0));
         HighlightBorder.BorderBrush = BrushHelper.ToBrush(snipping.BorderColor);
         HighlightBorder.BorderThickness = new Thickness(2);
     }

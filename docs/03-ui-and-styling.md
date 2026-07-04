@@ -25,7 +25,7 @@
 `OnSourceInitialized` 给 HWND 加 `WS_EX_NOACTIVATE`，弹出与点击均不夺取当前应用焦点。菜单全程不抢焦点，原前台窗口始终持焦，故**无需** `Activate()` / `OnDeactivated` / 显式恢复前台窗口，动作执行前只需 `Hide()`。
 
 ### 方块矩阵布局
-`ScrollViewer` + `ItemsControl`(ItemsPanel=`WrapPanel`)，每个动作为 72×72 图标方块（`MenuButtonStyle` + 内含图标 `TextBlock` + 名称 `TextBlock`）；底部工具区含齿轮按钮。`ApplyMenuSettings` 供设置页即时刷新菜单视觉。
+`ScrollViewer` + `ItemsControl`(ItemsPanel=`WrapPanel`)，每个动作为 72×72 图标方块（`MenuButtonStyle` + 内含图标 `TextBlock`（字形绑定 `ActionItem.Icon` 经 `HexToGlyphConverter`）+ 名称 `TextBlock`）；底部工具区含齿轮按钮。`ApplyMenuSettings` 供设置页即时刷新菜单视觉。
 
 ### 定位
 钩子事件给出物理坐标，用 `ToLogical(POINT)`（封装 `TransformFromDevice`）转逻辑坐标后令窗口中心对齐光标。`ToLogical` 同时供 `OnAnyMouseDown` 复用，统一 DPI 处理。
@@ -51,10 +51,10 @@
 左标题+说明（`FieldTitle` / `FieldDesc`）、右控件（`FlatTextBox` / `FlatComboBox` + `ColorSwatch` 圆角色块），行距 12px，无卡片。
 
 ### DataGrid 扁平
-透明底、仅横向网格线、列头仅下边框、行 hover `RowHoverBrush`/选中 `NavSelectedBrush`、单元格去焦点虚线框、编辑态 `EditingElementStyle=FlatTextBox`。
+透明底、仅横向网格线、列头仅下边框、行 hover `RowHoverBrush`/选中 `NavSelectedBrush`、单元格去焦点虚线框、编辑态 `EditingElementStyle=FlatTextBox`。图标列为 `DataGridTemplateColumn`（显示字形 / 编辑 hex 码，`HexToGlyphConverter`），其余列为 `DataGridTextColumn`。
 
 ### 颜色字段
-十六进制文本框 + 实时预览色块（`WireColorPreview` 在 `TextChanged` 刷色，无效值清空预览）；应用前 `Validate` 全字段校验，非法 `MessageBox` 拦截。
+十六进制文本框 + 实时预览色块（`WireColorPreview` 在 `TextChanged` 刷色，点色块弹 WinForms `ColorDialog` 选色并保留当前 alpha）；应用前 `Validate` 全字段校验，非法 `MessageBox` 拦截。
 
 ### 唤醒键下拉框
 3 项：鼠标中键 / 侧键后退 (XButton1) / 单纯画圈 (无按键，对应 `WAKEUP_CIRCLE_GESTURE = -1`)；`ToIndex`/`SaveButton_Click` 适配 -1。
@@ -66,11 +66,11 @@
 
 ## 4. ScreenshotWindow —— 截屏覆盖层
 
-覆盖层颜色由 `SettingsModel.Snipping` 注入（构造函数读 `SettingsManager.Instance.Settings.Snipping`，赋值 `MaskPath.Fill` / `HighlightBorder.BorderBrush`）；红框厚度（2px）与窗口 `Background`（Black）已硬编码，不再可配。`DragThreshold` 取自 `SnippingSettings.DragThreshold`（readonly 字段，双模态状态机逻辑不变）。
+覆盖层视觉由 `SettingsModel.Snipping` 注入（构造函数读 `SettingsManager.Instance.Settings.Snipping`，赋值 `MaskPath.Fill`（黑色 + `MaskAlpha` 浓度）/ `HighlightBorder.BorderBrush`）；红框厚度（2px）与窗口 `Background`（Black）已硬编码，不再可配。`DragThreshold` 取自 `SnippingSettings.DragThreshold`（readonly 字段，双模态状态机逻辑不变）。
 
 ### 三层结构（`RootGrid`）
 1. `BackgroundImage` —— 全屏底图（`Stretch="None"`）；
-2. 暗罩 `Path`（`MaskPath`）—— `MaskColor=#66000000`，用 `CombinedGeometry(Exclude)` 在 `ScreenGeometry`（整屏）中挖出 `CutoutGeometry`（选区）形成镂空；
+2. 暗罩 `Path`（`MaskPath`）—— 黑色 + `MaskAlpha` 浓度（默认 0.4 ≈ #66000000），用 `CombinedGeometry(Exclude)` 在 `ScreenGeometry`（整屏）中挖出 `CutoutGeometry`（选区）形成镂空；
 3. `HighlightBorder` —— 选区红框（`BorderColor=#FF0000` / `BorderThickness=2`），默认 `Hidden`。
 
 ### 双模态状态机

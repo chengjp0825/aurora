@@ -2,12 +2,14 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:MyQuicker"
+             xmlns:conv="clr-namespace:MyQuicker.Converters"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/ThemeStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <conv:HexToGlyphConverter x:Key="HexToGlyphConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

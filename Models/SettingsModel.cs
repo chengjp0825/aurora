@@ -87,8 +87,8 @@ public class SnippingSettings
     /// <summary>判定"点击 vs 拖拽"的位移阈值（DIP）。超过即升级为拖拽。</summary>
     public double DragThreshold { get; set; } = 5.0;
 
-    /// <summary>暗罩颜色（ARGB 十六进制）。</summary>
-    public string MaskColor { get; set; } = "#66000000";
+    /// <summary>暗罩浓度（0~1，越大越暗）。暗罩恒为黑色，仅透明度可配（原 MaskColor ARGB 简化）。</summary>
+    public double MaskAlpha { get; set; } = 0.4;
 
     /// <summary>选区寻边红框颜色。</summary>
     public string BorderColor { get; set; } = "#FF0000";
