@@ -22,7 +22,7 @@
 ## 4. Core Module Logic
 
 ### 4.1 Global Mouse Hook Service (`GlobalHookService`)
-全局低级鼠标钩子（`WH_MOUSE_LL`），监听光标按键与移动。回调内仅同步"吞键"，所有 UI 变化与磁盘 IO 异步派发；`WM_MOUSEMOVE` 永不拦截，作画圈识别旁观分支。唤醒方式可配置：中键 / 侧键后退 (XButton1) / 单纯画圈（无按键）。
+全局低级鼠标钩子（`WH_MOUSE_LL`），监听光标按键与移动。回调内仅同步“吞键”（`InterceptWakeupKey` 可配），所有 UI 变化与磁盘 IO 异步派发；`WM_MOUSEMOVE` 永不拦截，作画圈识别旁观分支。唤醒方式可配置：中键 / 侧键后退 (XButton1) / 单纯画圈（无按键），画圈另可调 `CircleSensitivity` 灵敏度。
 
 > 钩子存活、异步分发时效、`WM_MOUSEMOVE` 旁观逻辑、P-Invoke 签名索引详见 [`docs/02-interaction-engine.md`](docs/02-interaction-engine.md)。
 

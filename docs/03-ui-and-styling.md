@@ -44,7 +44,7 @@
 
 ### 整体
 - 内容区 `#FAFAFA` 画布；左侧边栏 `NavRadioButton`（Fluent：选中浅蓝底 `NavSelectedBrush` + 3px Accent 指示条 + 文字变 Accent；hover 0.15s 淡入）。
-- 4 个页签：常规（唤醒键 `FlatComboBox`）/ 动作管理（扁平 `DataGrid`）/ 截屏与贴图（`SectionHeader` 分区标题分隔两组）/ 菜单。页面切换由 `BooleanToVisibilityConverter` 绑定 `RadioButton.IsChecked`，无代码后置。
+- 4 个页签：常规（唤醒键 `FlatComboBox` + 唤醒时拦截按键 `CheckBox` + 画圈灵敏度 `FlatComboBox`）/ 动作管理（扁平 `DataGrid`）/ 截屏与贴图（`SectionHeader` 分区标题分隔两组，含截图后行为与截图范围 `FlatComboBox`）/ 菜单。页面切换由 `BooleanToVisibilityConverter` 绑定 `RadioButton.IsChecked`，无代码后置。
 - 唯一面板布局约束：750×500，保留内联。
 
 ### 表单

@@ -39,6 +39,8 @@ public partial class SettingsWindow : Window
     private void PopulateControls()
     {
         WakeupKeyCombo.SelectedIndex = ToIndex(_action);
+        InterceptWakeupCheckBox.IsChecked = _action.InterceptWakeupKey;
+        CircleSensitivityCombo.SelectedIndex = (int)_action.CircleSensitivity;
         ActionsGrid.ItemsSource = _action.Actions;
 
         // Snipping
@@ -46,6 +48,7 @@ public partial class SettingsWindow : Window
         SnippingMaskColorBox.Text = _snipping.MaskColor;
         SnippingBorderColorBox.Text = _snipping.BorderColor;
         AfterScreenshotCombo.SelectedIndex = (int)_snipping.AfterScreenshot;
+        CaptureScopeCombo.SelectedIndex = (int)_snipping.CaptureScope;
 
         // Menu
         MenuWidthBox.Text = _menu.Width.ToString(CultureInfo.InvariantCulture);
@@ -116,12 +119,15 @@ public partial class SettingsWindow : Window
             _ => NativeMethods.WM_MBUTTONDOWN,
         };
         _action.XButtonData = index == 1 ? 1 : 0;
+        _action.InterceptWakeupKey = InterceptWakeupCheckBox.IsChecked == true;
+        _action.CircleSensitivity = (CircleSensitivity)CircleSensitivityCombo.SelectedIndex;
 
         // Snipping
         _snipping.DragThreshold = double.Parse(SnippingDragThresholdBox.Text, CultureInfo.InvariantCulture);
         _snipping.MaskColor = SnippingMaskColorBox.Text;
         _snipping.BorderColor = SnippingBorderColorBox.Text;
         _snipping.AfterScreenshot = (SnippingAfterScreenshot)AfterScreenshotCombo.SelectedIndex;
+        _snipping.CaptureScope = (SnippingCaptureScope)CaptureScopeCombo.SelectedIndex;
 
         // Menu
         _menu.Width = double.Parse(MenuWidthBox.Text, CultureInfo.InvariantCulture);

@@ -26,8 +26,8 @@
 ### `/Models` —— 数据契约
 - `ActionItem` —— 实现 `INotifyPropertyChanged` 供 DataGrid 双向绑定。
 - `SettingsModel` —— 多层级 POCO，默认值对齐重构前硬编码：
-  - `ActionSettings`：含 `public const int WAKEUP_CIRCLE_GESTURE = -1;`（纯轨迹画圈唤醒的 `WakeupMessage` 哨兵值）+ `XButtonData`。
-  - `SnippingSettings`（颜色 / 阈值 / `AfterScreenshot` 截图后行为）/ `MenuSettings`（颜色 / 尺寸 / 圆角）。
+  - `ActionSettings`：含 `public const int WAKEUP_CIRCLE_GESTURE = -1;`（纯轨迹画圈唤醒的 `WakeupMessage` 哨兵值）+ `XButtonData` + `InterceptWakeupKey`（吞键开关）+ `CircleSensitivity`（画圈灵敏度）。
+  - `SnippingSettings`（颜色 / 阈值 / `AfterScreenshot` 截图后行为 / `CaptureScope` 截图范围）/ `MenuSettings`（颜色 / 尺寸 / 圆角）。
   - `PinSettings`：颜色 / `DefaultOpacity` / `DefaultShowBorder`（默认显示边界）/ `DefaultAnnotationMode`（默认批注模式）/ `DefaultTopmost`（默认置顶）/ `DefaultShowShadow`（默认显示阴影）。
 
 ### `/Resources` —— 共享 XAML 资源
@@ -59,7 +59,7 @@
 重构后所有"硬编码"按职责分三层，**严禁再散落到 code-behind / XAML 字面量**：
 
 ### JSON（`SettingsModel` / `settings.json`）
-关键视觉与交互参数（`Snipping` / `Menu` / `Pin` 的颜色、尺寸、阈值、`AfterScreenshot` 截图后行为、`DefaultTopmost` / `DefaultShowShadow` 等）。各窗口构造函数 `InitializeComponent()` 后读 `SettingsManager.Instance.Settings.{组}` 动态赋值给命名控件属性；按钮背景色等 Style 内部值经 `{DynamicResource}` 注入（窗口 `Resources[key] = BrushHelper.ToBrush(...)`）。
+关键视觉与交互参数（`Snipping` / `Menu` / `Pin` 的颜色、尺寸、阈值、`AfterScreenshot` 截图后行为、`CaptureScope` 截图范围、`InterceptWakeupKey` 吞键开关、`CircleSensitivity` 画圈灵敏度、`DefaultTopmost` / `DefaultShowShadow` 等）。各窗口构造函数 `InitializeComponent()` 后读 `SettingsManager.Instance.Settings.{组}` 动态赋值给命名控件属性；按钮背景色等 Style 内部值经 `{DynamicResource}` 注入（窗口 `Resources[key] = BrushHelper.ToBrush(...)`）。
 
 ### ThemeStyles.xaml（`StaticResource`）
 纯布局 / 公共样式。由 `App.xaml` 合并。**不写入 JSON**。控件清单见 `docs/03-ui-and-styling.md`。

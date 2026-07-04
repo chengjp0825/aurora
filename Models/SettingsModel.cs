@@ -23,6 +23,19 @@ public class SettingsModel
     public PinSettings Pin { get; set; } = new();
 }
 
+/// <summary>画圈手势灵敏度预设。低=不易误触，高=易触发。仅 WakeupMessage=画圈时生效。Per SPEC §4.1。</summary>
+public enum CircleSensitivity
+{
+    /// <summary>不易误触：更大最小圈、更严闭合度、更短时间窗。</summary>
+    Low = 0,
+
+    /// <summary>默认平衡值。</summary>
+    Medium = 1,
+
+    /// <summary>易触发：更小最小圈、更宽闭合度、更长时间窗。</summary>
+    High = 2,
+}
+
 /// <summary>唤醒键与动作列表配置（原 AppSettings 字段折叠于此）。</summary>
 public class ActionSettings
 {
@@ -34,6 +47,12 @@ public class ActionSettings
 
     /// <summary>WM_XBUTTONDOWN 的侧键标识（1=后退/XBUTTON1, 2=前进/XBUTTON2）；中键/画圈时忽略。</summary>
     public int XButtonData { get; set; } = 0;
+
+    /// <summary>唤醒时是否拦截（吞掉）唤醒键，不传递给当前前台应用。默认 true。Per SPEC §4.1。</summary>
+    public bool InterceptWakeupKey { get; set; } = true;
+
+    /// <summary>纯轨迹画圈手势的灵敏度预设。仅 WakeupMessage=画圈 时生效。Per SPEC §4.1。</summary>
+    public CircleSensitivity CircleSensitivity { get; set; } = CircleSensitivity.Medium;
 
     /// <summary>用户自定义动作列表。</summary>
     public List<ActionItem> Actions { get; set; } = new();
@@ -50,6 +69,16 @@ public enum SnippingAfterScreenshot
 
     /// <summary>仅钉为贴图，不写剪贴板。</summary>
     PinOnly = 2,
+}
+
+/// <summary>截图范围。Per SPEC 8B。</summary>
+public enum SnippingCaptureScope
+{
+    /// <summary>所有显示器（跨屏拼接，默认）。</summary>
+    AllMonitors = 0,
+
+    /// <summary>仅当前光标所在显示器。</summary>
+    CurrentMonitor = 1,
 }
 
 /// <summary>截屏覆盖层参数。Per SPEC 8B。</summary>
@@ -69,6 +98,9 @@ public class SnippingSettings
 
     /// <summary>截图结算后的动作（钉贴图 / 写剪贴板 / 两者）。Per SPEC 8B。</summary>
     public SnippingAfterScreenshot AfterScreenshot { get; set; } = SnippingAfterScreenshot.PinAndCopy;
+
+    /// <summary>截图范围：所有显示器（跨屏拼接）/ 当前光标所在显示器。Per SPEC 8B。</summary>
+    public SnippingCaptureScope CaptureScope { get; set; } = SnippingCaptureScope.AllMonitors;
 }
 
 /// <summary>唤醒菜单参数。</summary>

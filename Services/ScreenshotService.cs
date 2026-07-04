@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media.Imaging;
 using MyQuicker.Interop;
+using MyQuicker.Models;
 
 namespace MyQuicker.Services;
 
@@ -20,7 +21,7 @@ internal sealed class ScreenshotService
     /// </summary>
     public (BitmapSource Source, Rectangle Bounds) Capture()
     {
-        Rectangle bounds = ComputeVirtualBounds();
+        Rectangle bounds = ComputeBounds();
 
         using var bmp = new Bitmap(bounds.Width, bounds.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using (var g = Graphics.FromImage(bmp))
@@ -46,12 +47,32 @@ internal sealed class ScreenshotService
     }
 
     /// <summary>
-    /// Computes the smallest rectangle that encloses every screen. X/Y may
-    /// be negative when a monitor extends to the left/above the primary.
+    /// 按 <see cref="SnippingSettings.CaptureScope"/> 计算截图范围：
+    /// <see cref="SnippingCaptureScope.AllMonitors"/> 取所有显示器并集（跨屏拼接），
+    /// <see cref="SnippingCaptureScope.CurrentMonitor"/> 取光标所在显示器。X/Y 可能为负
+    /// （显示器在主屏左/上方时）。
     /// </summary>
-    private static Rectangle ComputeVirtualBounds()
+    private static Rectangle ComputeBounds()
     {
         Screen[] screens = Screen.AllScreens;
+
+        if (SettingsManager.Instance.Settings.Snipping.CaptureScope == SnippingCaptureScope.CurrentMonitor)
+        {
+            var cursor = System.Windows.Forms.Cursor.Position;
+            foreach (Screen s in screens)
+                if (s.Bounds.Contains(cursor))
+                    return s.Bounds;
+            // 光标不在任何屏幕上（罕见，如刚切换显示器）：回退虚拟屏。
+        }
+
+        return ComputeVirtualBounds(screens);
+    }
+
+    /// <summary>
+    /// 计算包围所有屏幕的最小矩形（跨屏虚拟屏）。X/Y 可能为负。
+    /// </summary>
+    private static Rectangle ComputeVirtualBounds(Screen[] screens)
+    {
         int xMin = screens.Min(s => s.Bounds.X);
         int yMin = screens.Min(s => s.Bounds.Y);
         int xMax = screens.Max(s => s.Bounds.Right);

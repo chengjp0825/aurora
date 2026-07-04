@@ -23,7 +23,7 @@ internal sealed class GlobalHookService : IDisposable
     private IntPtr _hookId = IntPtr.Zero;
     private ActionSettings _settings = new();
 
-    /// <summary>纯轨迹画圈的滑动时间窗：最近 GestureWindowMs 内的鼠标移动点。</summary>
+    /// <summary>纯轨迹画圈的滑动时间窗：最近 _gestureWindowMs 内的鼠标移动点。</summary>
     private readonly Queue<(POINT Position, long Timestamp)> _moveHistory = new();
 
     /// <summary>复用缓冲，避免每次 mousemove 给 IsCircle 传参时分配 List。</summary>
@@ -32,13 +32,19 @@ internal sealed class GlobalHookService : IDisposable
     /// <summary>IsCircle 节流时间戳：检测每 CircleCheckIntervalMs ms 一次，避免每个 mousemove 跑几何判定拖慢钩子线程。</summary>
     private long _lastCircleCheckTick;
 
-    private const int GestureWindowMs = 800;
     private const int CircleCheckIntervalMs = 30;
+
+    // 画圈手势阈值缓存：由 _settings.CircleSensitivity 映射，UpdateSettings 时刷新。
+    // Medium 为默认值（与重构前硬编码一致）。
+    private double _gestureMinBoxSide = 80.0;
+    private double _gestureMinTotalTurnDeg = 300.0;
+    private int _gestureWindowMs = 800;
 
     /// <summary>
     /// Raised on the UI thread when the configured wake-up button is
     /// pressed. The <see cref="POINT"/> carries the physical screen
-    /// coordinates of the click. The event is swallowed (not forwarded).
+    /// coordinates of the click. 是否吞掉唤醒键由
+    /// <see cref="ActionSettings.InterceptWakeupKey"/> 决定。
     /// </summary>
     public event EventHandler<POINT>? OnWakeupClick;
 
@@ -55,6 +61,21 @@ internal sealed class GlobalHookService : IDisposable
     public void UpdateSettings(ActionSettings settings)
     {
         _settings = settings ?? new ActionSettings();
+        ApplyGestureThresholds();
+    }
+
+    /// <summary>
+    /// 按 <see cref="ActionSettings.CircleSensitivity"/> 预设刷新画圈阈值缓存。
+    /// Low 不易误触（更大圈 / 更严闭合 / 更短窗），High 易触发（更小圈 / 更宽闭合 / 更长窗）。
+    /// </summary>
+    private void ApplyGestureThresholds()
+    {
+        (_gestureMinBoxSide, _gestureMinTotalTurnDeg, _gestureWindowMs) = _settings.CircleSensitivity switch
+        {
+            CircleSensitivity.Low  => (100.0, 330.0, 600),
+            CircleSensitivity.High => (60.0,  270.0, 1000),
+            _                      => (80.0,  300.0, 800),  // Medium
+        };
     }
 
     /// <summary>
@@ -111,7 +132,7 @@ internal sealed class GlobalHookService : IDisposable
                     var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
                     long now = Environment.TickCount64;
                     _moveHistory.Enqueue((info.pt, now));
-                    PruneMoveHistory(now);
+                    PruneMoveHistory(now, _gestureWindowMs);
 
                     // 节流：入队/剪枝每次都做（极轻），IsCircle 每 30ms 才跑一次。
                     // 否则高轮询鼠标下每个 mousemove 都复制历史 + Atan2 计算会阻塞钩子线程致鼠标卡顿。
@@ -122,7 +143,7 @@ internal sealed class GlobalHookService : IDisposable
                         foreach (var item in _moveHistory)
                             _pointsBuffer.Add(item.Position);
 
-                        if (GestureHelper.IsCircle(_pointsBuffer))
+                        if (GestureHelper.IsCircle(_pointsBuffer, _gestureMinBoxSide, _gestureMinTotalTurnDeg))
                         {
                             _moveHistory.Clear(); // 防止一段轨迹连续触发
                             var dispatcher = System.Windows.Application.Current?.Dispatcher;
@@ -164,7 +185,10 @@ internal sealed class GlobalHookService : IDisposable
                     {
                         dispatcher.BeginInvoke(new Action(() => OnWakeupClick?.Invoke(this, pt)));
                     }
-                    return (IntPtr)1; // 同步吞掉唤醒键，立即返回
+                    // 是否吞掉唤醒键（不传递给前台应用）由 InterceptWakeupKey 决定。
+                    if (_settings.InterceptWakeupKey)
+                        return (IntPtr)1; // 同步吞掉唤醒键，立即返回
+                    return NativeMethods.CallNextHookEx(_hookId, nCode, wParam, lParam);
                 }
             }
         }
@@ -172,10 +196,10 @@ internal sealed class GlobalHookService : IDisposable
         return NativeMethods.CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    /// <summary>剔除滑动窗口中超过 GestureWindowMs 的老点，保持时间窗简短。</summary>
-    private void PruneMoveHistory(long now)
+    /// <summary>剔除滑动窗口中超过 gestureWindowMs 的老点，保持时间窗简短。</summary>
+    private void PruneMoveHistory(long now, int gestureWindowMs)
     {
-        while (_moveHistory.Count > 0 && now - _moveHistory.Peek().Timestamp > GestureWindowMs)
+        while (_moveHistory.Count > 0 && now - _moveHistory.Peek().Timestamp > gestureWindowMs)
             _moveHistory.Dequeue();
     }
 

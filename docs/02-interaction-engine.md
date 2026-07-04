@@ -42,25 +42,27 @@
 - **钩子委托必须存字段（`_hookProc`）防 GC 回收**，否则 user32 回调野指针会崩进程。
 
 ### 拦截逻辑（`HookCallback`）
-1. **`WM_MOUSEMOVE` 旁观分支**（永不拦截，始终 `CallNextHookEx`）：仅在 `WakeupMessage == WAKEUP_CIRCLE_GESTURE` 时入队 `(POINT, Timestamp=Environment.TickCount64)` 到 `_moveHistory`，`PruneMoveHistory` 剔除 >800ms 老点；样本数 ≥8 且距上次检测 ≥30ms 时（**节流**，避免每个 mousemove 都复制历史 + 跑 `Atan2` 拖慢钩子线程致鼠标卡顿）复制到复用缓冲 `_pointsBuffer` 调 `GestureHelper.IsCircle`，命中即清空队列并 `Dispatcher.BeginInvoke(OnWakeupClick)`。
+1. **`WM_MOUSEMOVE` 旁观分支**（永不拦截，始终 `CallNextHookEx`）：仅在 `WakeupMessage == WAKEUP_CIRCLE_GESTURE` 时入队 `(POINT, Timestamp=Environment.TickCount64)` 到 `_moveHistory`，`PruneMoveHistory` 剔除 >`_gestureWindowMs` 老点（按灵敏度预设，默认 800ms）；样本数 ≥8 且距上次检测 ≥30ms 时（**节流**，避免每个 mousemove 都复制历史 + 跑 `Atan2` 拖慢钩子线程致鼠标卡顿）复制到复用缓冲 `_pointsBuffer` 调 `GestureHelper.IsCircle`（传入 `_gestureMinBoxSide` / `_gestureMinTotalTurnDeg`），命中即清空队列并 `Dispatcher.BeginInvoke(OnWakeupClick)`。
 2. 跟踪左/右/非客户区/中/侧键按下；任一按下即 `Dispatcher.BeginInvoke(OnAnyMouseDown)`（供 UI 检测菜单外点击）。
-3. 若 `msg == ActionSettings.WakeupMessage`：侧键（`WM_XBUTTONDOWN`）还需高位字 `mouseData >> 16` 等于 `XButtonData`；命中即 `Dispatcher.BeginInvoke(OnWakeupClick)` 并 `return (IntPtr)1` 吞键；否则 `CallNextHookEx`。
+3. 若 `msg == ActionSettings.WakeupMessage`：侧键（`WM_XBUTTONDOWN`）还需高位字 `mouseData >> 16` 等于 `XButtonData`；命中即 `Dispatcher.BeginInvoke(OnWakeupClick)`，`InterceptWakeupKey=true` 时 `return (IntPtr)1` 吞键，否则 `CallNextHookEx` 透传给前台应用。
 
 ### 回调时效
 除"吞键"同步返回外，所有 UI 变化与磁盘 IO 一律异步派发，保证 <100ms 返回，规避 `LowLevelHooksTimeout` 静默摘钩。
 
 ### 可配置唤醒方式
-中键 / 侧键后退 (XButton1) / 单纯画圈（`WAKEUP_CIRCLE_GESTURE = -1`），由 `ActionSettings.WakeupMessage` + `XButtonData` 决定，`SettingsWindow` 编辑后经 `UpdateSettings` 即时生效。
+中键 / 侧键后退 (XButton1) / 单纯画圈（`WAKEUP_CIRCLE_GESTURE = -1`），由 `ActionSettings.WakeupMessage` + `XButtonData` 决定，`SettingsWindow` 编辑后经 `UpdateSettings` 即时生效。`InterceptWakeupKey`（默认 true）控制唤醒键是否被吞掉；画圈模式另由 `CircleSensitivity`（低/中/高）调整识别阈值，`UpdateSettings` 时刷新缓存。
 
 ## 3. 画圈手势识别（`GestureHelper`）
 
-**纯几何纯函数** `IsCircle(List<POINT> recentPoints)`，无状态、无副作用，O(n) 单趟。
-- 调用方（`GlobalHookService`）负责维护 ≤800ms 滑动时间窗；本方法只做空间几何判定。
+**纯几何纯函数** `IsCircle(List<POINT> recentPoints, double minBoxSide, double minTotalTurnDeg)`，无状态、无副作用，O(n) 单趟。`minBoxSide` / `minTotalTurnDeg` 由调用方按 `CircleSensitivity` 预设注入。
+- 调用方（`GlobalHookService`）负责维护滑动时间窗（`_gestureWindowMs`，按灵敏度预设，默认 800ms）；本方法只做空间几何判定。
 - 判定闸门（防误触）：
   1. 样本数 `< 8` → false。
-  2. Bounding Box 宽高均 `≥80px`，宽高比 `0.5~2.0` → 否则 false（排除抖动/长条拖拽）。
-  3. **有符号偏转角累加（转向数）**：相邻向量 `atan2` 差归一化到 `[-π,π]` 后求和；`|总和| ≥ 300°` → true。一致方向画圈 ≈ ±360°；直线/折返正负抵消 ≈ 0°。
+  2. Bounding Box 宽高均 `≥minBoxSide`（默认 80px），宽高比 `0.5~2.0` → 否则 false（排除抖动/长条拖拽）。
+  3. **有符号偏转角累加（转向数）**：相邻向量 `atan2` 差归一化到 `[-π,π]` 后求和；`|总和| ≥ minTotalTurnDeg`（默认 300°）→ true。一致方向画圈 ≈ ±360°；直线/折返正负抵消 ≈ 0°。
   4. 向量长度 `<2px` 跳过（过滤亚像素抖动）。
+
+> 灵敏度预设（`CircleSensitivity` → `minBoxSide` / `minTotalTurnDeg` / `gestureWindowMs`）：**低** 100/330/600（不易误触）、**中** 80/300/800（默认）、**高** 60/270/1000（易触发）。`UpdateSettings` 时刷新缓存。
 
 ## 4. 多屏截图采集（`ScreenshotService`）
 
@@ -72,11 +74,11 @@
 > 任何新增的 GDI 对象（`Bitmap`/`HBITMAP`/`HICON` 等）都遵循同一规则：`Freeze` 拷贝 → `DeleteObject` 释放。`NativeMethods.DeleteObject` 已就绪。
 
 ### Capture 流程
-`Capture()`：`ComputeVirtualBounds()` 取所有屏幕 `Min(X/Y)` 与 `Max(Right/Bottom)` 构成虚拟屏矩形（X/Y 可能为负）→ `Bitmap` (32bppArgb) → `CopyFromScreen` → `GetHbitmap` → `Imaging.CreateBitmapSourceFromHBitmap` → `Freeze()` → `finally` 中 `DeleteObject(hBitmap)`。返回 `(BitmapSource, Rectangle)`。
+`Capture()`：`ComputeBounds()` 按 `Snipping.CaptureScope` 取截图范围——`AllMonitors`（默认）取所有屏幕 `Min(X/Y)` 与 `Max(Right/Bottom)` 构成虚拟屏矩形，`CurrentMonitor` 取光标所在 `Screen.Bounds` → `Bitmap` (32bppArgb) → `CopyFromScreen` → `GetHbitmap` → `Imaging.CreateBitmapSourceFromHBitmap` → `Freeze()` → `finally` 中 `DeleteObject(hBitmap)`。返回 `(BitmapSource, Rectangle)`。
 
 ## 5. 多屏坐标系（VirtualBounds）
 
-多屏环境下主屏左侧/上方的显示器会使原点为负。所有跨屏坐标计算必须以 `ScreenshotService.ComputeVirtualBounds()` 为基准（取所有屏幕 `Min(X/Y)` 与 `Max(Right/Bottom)`，X/Y 可能为负）：
+多屏环境下主屏左侧/上方的显示器会使原点为负。截图范围由 `SnippingSettings.CaptureScope` 决定：`AllMonitors` 取所有屏幕 `Min(X/Y)` 与 `Max(Right/Bottom)` 构成虚拟屏矩形（X/Y 可能为负）；`CurrentMonitor` 取光标所在 `Screen.Bounds`（单屏，原点通常非负）：
 - `ScreenshotWindow` 的 `Left/Top/Width/Height` 直接绑定 `bounds`（物理像素）；
 - 鼠标物理坐标转窗口局部坐标统一用 `pt - _bounds.X/Y`，窗口局部坐标与底图像素 1:1 对应，`CroppedBitmap` 即按此裁剪；
 - `MainWindow` 定位用 `ToLogical(POINT)`（封装 `PresentationSource.CompositionTarget.TransformFromDevice`）把物理坐标转逻辑坐标后再居中。

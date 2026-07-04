@@ -70,6 +70,37 @@
                                 <ComboBoxItem Content="单纯画圈 (无按键)" />
                             </ComboBox>
                         </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="280" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="唤醒时拦截按键" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="不把唤醒键传递给当前应用" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" x:Name="InterceptWakeupCheckBox"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="280" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="画圈灵敏度" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="仅画圈模式生效" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" x:Name="CircleSensitivityCombo"
+                                      Style="{StaticResource FlatComboBox}"
+                                      Width="280" HorizontalAlignment="Right" SelectedIndex="1">
+                                <ComboBoxItem Content="低（不易误触）" />
+                                <ComboBoxItem Content="中（默认）" />
+                                <ComboBoxItem Content="高（易触发）" />
+                            </ComboBox>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
 
@@ -181,6 +212,23 @@
                                 <ComboBoxItem Content="钉为贴图并复制" />
                                 <ComboBoxItem Content="仅复制到剪贴板" />
                                 <ComboBoxItem Content="仅钉为贴图" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="截图范围" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="多屏时截哪些显示器" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" x:Name="CaptureScopeCombo"
+                                      Style="{StaticResource FlatComboBox}"
+                                      Width="200" HorizontalAlignment="Right" SelectedIndex="0">
+                                <ComboBoxItem Content="所有显示器" />
+                                <ComboBoxItem Content="当前光标所在显示器" />
                             </ComboBox>
                         </Grid>
 
