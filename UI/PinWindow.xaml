@@ -121,6 +121,12 @@
                 <RadioButton Style="{StaticResource FlatColorSwatch}" Foreground="#FFFFFF"
                              Tag="#FFFFFF" ToolTip="白"
                              Checked="Color_Checked" />
+                <RadioButton Style="{StaticResource FlatColorSwatch}" Foreground="#FFA500"
+                             Tag="#FFA500" ToolTip="橙"
+                             Checked="Color_Checked" />
+                <RadioButton Style="{StaticResource FlatColorSwatch}" Foreground="#000000"
+                             Tag="#000000" ToolTip="黑"
+                             Checked="Color_Checked" />
             </StackPanel>
         </Border>
     </Grid>
@@ -134,11 +140,11 @@
             <MenuItem Header="显示边界" IsCheckable="True" x:Name="BorderMenuItem"
                       Click="Border_Click" />
             <MenuItem Header="重置大小" Click="ResetSize_Click" />
-            <MenuItem Header="不透明度">
+            <MenuItem Header="不透明度" x:Name="OpacityMenuItem">
                 <MenuItem Header="0.3" Tag="0.3" Click="Opacity_Click" />
                 <MenuItem Header="0.5" Tag="0.5" Click="Opacity_Click" />
                 <MenuItem Header="0.8" Tag="0.8" Click="Opacity_Click" />
-                <MenuItem Header="1.0" Tag="1.0" Click="Opacity_Click" IsChecked="True" />
+                <MenuItem Header="1.0" Tag="1.0" Click="Opacity_Click" />
             </MenuItem>
             <MenuItem Header="旋转" Click="Rotate_Click" />
             <MenuItem Header="镜像" Click="Mirror_Click" />

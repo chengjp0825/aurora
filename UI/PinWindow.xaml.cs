@@ -81,6 +81,7 @@ public partial class PinWindow : Window
         PinBorder.BorderBrush = BrushHelper.ToBrush(pin.BorderColor);
         ShadowEffect.BlurRadius = 14;
         Opacity = pin.DefaultOpacity;
+        SyncOpacityMenu(pin.DefaultOpacity); // 不透明度菜单勾选与 DefaultOpacity 同步
 
         // 默认置顶 / 默认阴影（Per SPEC 8C）：覆盖 XAML 的 True 默认与菜单勾选状态。
         Topmost = pin.DefaultTopmost;
@@ -423,18 +424,22 @@ public partial class PinWindow : Window
         ApplyTransform();
     }
 
-    /// <summary>不透明度子菜单：0.3 / 0.5 / 0.8 / 1.0。</summary>
+    /// <summary>不透明度子菜单：0.3 / 0.5 / 0.8 / 1.0。点击设 Opacity 并同步勾选。</summary>
     private void Opacity_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem mi && mi.Tag is string s && double.TryParse(s, out double op))
-            Opacity = op;
-
-        if (sender is MenuItem current && current.Parent is MenuItem parent)
         {
-            foreach (var child in parent.Items)
-                if (child is MenuItem m)
-                    m.IsChecked = ReferenceEquals(m, current);
+            Opacity = op;
+            SyncOpacityMenu(op);
         }
+    }
+
+    /// <summary>按当前不透明度同步菜单勾选（构造时与点击时共用，Tag 值精确匹配）。</summary>
+    private void SyncOpacityMenu(double opacity)
+    {
+        foreach (var child in OpacityMenuItem.Items)
+            if (child is MenuItem m && m.Tag is string s && double.TryParse(s, out double v))
+                m.IsChecked = Math.Abs(v - opacity) < 0.001;
     }
 
     /// <summary>旋转：每次顺时针 90 度，窗口宽高随外接矩形互换。</summary>
@@ -526,18 +531,20 @@ public partial class PinWindow : Window
         catch { /* 剪贴板被独占不阻断 */ }
     }
 
-    /// <summary>另存为...：光栅化复合图用 PngBitmapEncoder 保存到用户选择的路径。</summary>
+    /// <summary>另存为...：光栅化复合图按所选格式（PNG/JPEG）保存到用户选择的路径。</summary>
     private void SaveAs_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SaveFileDialog
         {
-            Filter = "PNG 图片 (*.png)|*.png",
+            Filter = "PNG 图片 (*.png)|*.png|JPEG 图片 (*.jpg;*.jpeg)|*.jpg;*.jpeg",
             FileName = "screenshot.png",
         };
         if (dlg.ShowDialog() != true)
             return;
 
-        var encoder = new PngBitmapEncoder();
+        bool isJpeg = dlg.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                   || dlg.FileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase);
+        BitmapEncoder encoder = isJpeg ? new JpegBitmapEncoder() : new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(RenderComposite()));
         using var fs = new FileStream(dlg.FileName, FileMode.Create);
         encoder.Save(fs);

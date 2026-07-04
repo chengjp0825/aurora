@@ -109,10 +109,10 @@ ESC / 右键取消关闭。
 - 旋转：`_rotationStep = (_rotationStep + 1) % 4`，`RotationAngle = step * 90`（步进固定 90°，原 `RotationStepDegrees` 已移除：非 90° 会破坏 90/270 宽高互换逻辑），90/270 时窗口宽高互换（`ApplyWindowSize`）。
 - 镜像：`ScaleTransform.ScaleX = -1/1`（水平翻转，`RenderTransformOrigin=0.5,0.5` 居中）。
 - 显示边界：`PinBorderThickness` 0↔2，边框向外生长（窗口左上角反向偏移保持图片屏幕坐标不变）。
-- 不透明度：直接设 `Window.Opacity`。
+- 不透明度：直接设 `Window.Opacity`；右键菜单勾选与 `DefaultOpacity` 同步（构造时按 Tag 值精确匹配，无匹配项则全不勾）。
 
 ### 落盘
-另存为 / 作为文件打开：`PngBitmapEncoder` 落盘；后者写临时文件后 `UseShellExecute=true` 打开。
+另存为（PNG/JPEG，按扩展名选 encoder）/ 作为文件打开（PNG 临时文件）：`PngBitmapEncoder` / `JpegBitmapEncoder` 落盘；后者写临时文件后 `UseShellExecute=true` 打开。
 
 ### 参数注入
 由 `SettingsModel.Pin` 注入（`BorderColor` / `DefaultOpacity` / `DefaultShowBorder` / `DefaultAnnotationMode` / `DefaultTopmost` / `DefaultShowShadow`）；最小宽高（40×40）、阴影 Depth/Opacity/Direction/Color/`BlurRadius=14`、旋转步进（90°）、`PinBorderThickness=2`、不透明度菜单预设保留内联。
@@ -137,7 +137,7 @@ ESC / 右键取消关闭。
 ### 工具栏（仅批注模式开启时 Hover 显隐）
 - **批注模式开关**：右键「批注 ▸ 批注模式」勾选项切换。关闭时工具栏完全不存在（`Opacity=0` 且 `IsHitTestVisible=False`，Hover 不触发），Canvas 命中关闭、左键回退 `DragMove`。开启时才进入 Hover 显隐。
 - **Hover 触发**：批注模式开启后，鼠标进入窗口 → 工具栏 `Opacity` 淡入（0→1，0.15s）并 `IsHitTestVisible=True`；移出 → 淡出并 `IsHitTestVisible=False`。默认画面绝对干净。
-- **布局**：`StackPanel Orientation=Horizontal`：指针 / 画框 / 画圆 / 箭头 / 文字 ｜ 画笔粗细（细2/中4/粗6）｜ 颜色预设（红/黄/蓝/绿/白）。每个按钮带 `ToolTip` 说明。
+- **布局**：`StackPanel Orientation=Horizontal`：指针 / 画框 / 画圆 / 箭头 / 文字 ｜ 画笔粗细（细2/中4/粗6）｜ 颜色预设（红/黄/蓝/绿/白/橙/黑）。每个按钮带 `ToolTip` 说明。
 - **样式**：`FlatIconButton`（图标 `RadioButton`，选中 Accent 底；画笔粗细复用此样式，实例覆盖 `GroupName`/`FontFamily`/`FontSize`）+ `FlatColorSwatch`（圆形色块 `RadioButton`），集中定义于 `ThemeStyles.xaml`（禁止内联）。
 - **坐标空间**：视图空间（WYSIWYG）—— 批注绘制在 Canvas 局部坐标，导出即所见。
 
