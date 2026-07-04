@@ -1,6 +1,6 @@
 # 唤醒面板 UI 优化实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 在不改变 MainWindow 生命周期与极速唤醒机制的前提下，将唤醒菜单从“深色方块矩阵”升级为带阴影、边框、悬停缩放和淡入动画的精致紧凑网格。
 
@@ -27,7 +27,7 @@
 **Files:**
 - Modify: `Models/SettingsModel.cs:110-125`
 
-- [ ] **Step 1：修改默认值**
+- [x] **Step 1：修改默认值**
 
   将 `MenuSettings` 类中的默认值改为新设计值：
 
@@ -51,12 +51,12 @@
   public string ButtonHoverBackground { get; set; } = "#38FFFFFF";
   ```
 
-- [ ] **Step 2：编译检查**
+- [x] **Step 2：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功，无错误。
 
-- [ ] **Step 3：Commit**
+- [x] **Step 3：Commit**
 
   ```bash
   git add Models/SettingsModel.cs
@@ -70,7 +70,7 @@
 **Files:**
 - Modify: `Resources/ThemeStyles.xaml:36-62`
 
-- [ ] **Step 1：替换 MenuButtonStyle**
+- [x] **Step 1：替换 MenuButtonStyle**
 
   将现有 `MenuButtonStyle` 替换为以下样式（保持 `DynamicResource` 让背景色仍可从 code-behind 注入）：
 
@@ -143,7 +143,7 @@
   </Style>
   ```
 
-- [ ] **Step 2：更新相关尺寸资源**
+- [x] **Step 2：更新相关尺寸资源**
 
   在同文件中，将 `MenuButtonCornerRadius` 从 `8` 改为 `10`：
 
@@ -151,12 +151,12 @@
   <CornerRadius x:Key="MenuButtonCornerRadius">10</CornerRadius>
   ```
 
-- [ ] **Step 3：编译检查**
+- [x] **Step 3：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功。
 
-- [ ] **Step 4：Commit**
+- [x] **Step 4：Commit**
 
   ```bash
   git add Resources/ThemeStyles.xaml
@@ -170,7 +170,7 @@
 **Files:**
 - Modify: `Resources/ThemeStyles.xaml`（在 `MenuButtonStyle` 之后插入）
 
-- [ ] **Step 1：在 ThemeStyles.xaml 中添加齿轮样式**
+- [x] **Step 1：在 ThemeStyles.xaml 中添加齿轮样式**
 
   在 `MenuButtonStyle` 闭合标签 `</Style>` 之后新增：
 
@@ -212,12 +212,12 @@
   </Style>
   ```
 
-- [ ] **Step 2：编译检查**
+- [x] **Step 2：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功。
 
-- [ ] **Step 3：Commit**
+- [x] **Step 3：Commit**
 
   ```bash
   git add Resources/ThemeStyles.xaml
@@ -231,7 +231,7 @@
 **Files:**
 - Modify: `UI/MainWindow.xaml`
 
-- [ ] **Step 1：用 Grid 包裹 RootBorder 并加入阴影层**
+- [x] **Step 1：用 Grid 包裹 RootBorder 并加入阴影层**
 
   将根 `Border` 替换为 `Grid`，内部加入阴影层和原 `RootBorder`。注意：阴影层填充整个窗口，内容面板通过 `Margin="12"` 内缩以露出底层投影：
 
@@ -256,7 +256,7 @@
   </Window>
   ```
 
-- [ ] **Step 2：调整按钮矩阵尺寸与字号**
+- [x] **Step 2：调整按钮矩阵尺寸与字号**
 
   在 `ItemsControl.ItemTemplate` 中的 `Button` 上：
 
@@ -290,7 +290,7 @@
              Margin="0,2,0,1" />
   ```
 
-- [ ] **Step 3：更新 ApplyMenuSettings 以容纳投影边距**
+- [x] **Step 3：更新 ApplyMenuSettings 以容纳投影边距**
 
   文件：`UI/MainWindow.xaml.cs` 中的 `ApplyMenuSettings` 方法。
 
@@ -306,7 +306,7 @@
   Resources["MenuButtonHoverBackgroundBrush"] = BrushHelper.ToBrush(menu.ButtonHoverBackground);
   ```
 
-- [ ] **Step 4：更新 OnAnyMouseDown 判定区域为内容区**
+- [x] **Step 4：更新 OnAnyMouseDown 判定区域为内容区**
 
   文件：`UI/MainWindow.xaml.cs` 中的 `OnAnyMouseDown` 方法。
 
@@ -320,7 +320,7 @@
       Sleep();
   ```
 
-- [ ] **Step 5：更新设置页标签**
+- [x] **Step 5：更新设置页标签**
 
   文件：`UI/SettingsWindow.xaml` 中「菜单」设置页的「窗口宽度/高度」标签。
 
@@ -330,12 +330,12 @@
   - "窗口高度" → "面板高度"
   - "单位 DIP" → "内容区高度，单位 DIP"
 
-- [ ] **Step 6：编译检查**
+- [x] **Step 6：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功。
 
-- [ ] **Step 7：Commit**
+- [x] **Step 7：Commit**
 
   ```bash
   git add UI/MainWindow.xaml UI/MainWindow.xaml.cs UI/SettingsWindow.xaml
@@ -349,7 +349,7 @@
 **Files:**
 - Modify: `UI/MainWindow.xaml:71-83`
 
-- [ ] **Step 1：替换底部工具区 XAML**
+- [x] **Step 1：替换底部工具区 XAML**
 
   将底部 `Border` 与 `Button` 替换为：
 
@@ -367,12 +367,12 @@
   </Border>
   ```
 
-- [ ] **Step 2：编译检查**
+- [x] **Step 2：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功。
 
-- [ ] **Step 3：Commit**
+- [x] **Step 3：Commit**
 
   ```bash
   git add UI/MainWindow.xaml
@@ -386,7 +386,7 @@
 **Files:**
 - Modify: `UI/MainWindow.xaml.cs`
 
-- [ ] **Step 1：在 MainWindow 构造函数中初始化 ScaleTransform**
+- [x] **Step 1：在 MainWindow 构造函数中初始化 ScaleTransform**
 
   在 `InitializeComponent();` 之后添加：
 
@@ -396,7 +396,7 @@
   RootBorder.RenderTransform = new ScaleTransform(1, 1);
   ```
 
-- [ ] **Step 2：修改 WakeUp 方法播放动画**
+- [x] **Step 2：修改 WakeUp 方法播放动画**
 
   将现有 `WakeUp` 方法：
 
@@ -462,7 +462,7 @@
   }
   ```
 
-- [ ] **Step 3：修改 Sleep 方法清除动画**
+- [x] **Step 3：修改 Sleep 方法清除动画**
 
   在 `Sleep()` 方法中加入动画清除，避免隐藏时动画仍在播放：
 
@@ -481,12 +481,12 @@
   }
   ```
 
-- [ ] **Step 4：编译检查**
+- [x] **Step 4：编译检查**
 
   Run: `dotnet build`
   Expected: 编译成功。
 
-- [ ] **Step 5：Commit**
+- [x] **Step 5：Commit**
 
   ```bash
   git add UI/MainWindow.xaml.cs
@@ -500,7 +500,7 @@
 **Files:**
 - Modify: `docs/03-ui-and-styling.md:19-41`
 
-- [ ] **Step 1：更新 MainWindow 视觉描述**
+- [x] **Step 1：更新 MainWindow 视觉描述**
 
   将 §2 中“方块矩阵布局”与“定位”“显隐”之间的段落更新为：
 
@@ -512,7 +512,7 @@
   钩子事件给出物理坐标，用 `ToLogical(POINT)`（封装 `TransformFromDevice`）转逻辑坐标后令窗口中心对齐光标。`ToLogical` 同时供 `OnAnyMouseDown` 复用，统一 DPI 处理。
   ```
 
-- [ ] **Step 2：Commit**
+- [x] **Step 2：Commit**
 
   ```bash
   git add docs/03-ui-and-styling.md
@@ -526,30 +526,30 @@
 **Files:**
 - N/A（运行验证）
 
-- [ ] **Step 1：Release 构建**
+- [x] **Step 1：Release 构建**
 
   Run: `dotnet build -c Release`
   Expected: 0 errors，0 warnings（与原有警告一致）。
 
-- [ ] **Step 2：启动应用并验证默认外观**
+- [x] **Step 2：启动应用并验证默认外观**
 
   Run: `dotnet run -c Release`（或执行生成的 `.exe`）
   验证项：
-  - [ ] 唤醒后菜单尺寸约为 250×250，背景为深灰半透明。
-  - [ ] 面板边缘有 1px 细边框，整体有柔和投影。
-  - [ ] 按钮为 76×76，图标大小适中，文字清晰。
-  - [ ] 鼠标悬停按钮时按钮轻微放大并提亮。
-  - [ ] 鼠标按下按钮时按钮背景变暗。
-  - [ ] 底部齿轮为圆角小按钮，hover 有反馈。
-  - [ ] 唤醒时有淡入动画，不卡顿。
-  - [ ] 点击外部、执行动作、点击齿轮后菜单立即隐藏。
+  - [x] 唤醒后菜单尺寸约为 250×250，背景为深灰半透明。
+  - [x] 面板边缘有 1px 细边框，整体有柔和投影。
+  - [x] 按钮为 76×76，图标大小适中，文字清晰。
+  - [x] 鼠标悬停按钮时按钮轻微放大并提亮。
+  - [x] 鼠标按下按钮时按钮背景变暗。
+  - [x] 底部齿轮为圆角小按钮，hover 有反馈。
+  - [x] 唤醒时有淡入动画，不卡顿。
+  - [x] 点击外部、执行动作、点击齿轮后菜单立即隐藏。
 
-- [ ] **Step 3：验证配置迁移**
+- [x] **Step 3：验证配置迁移**
 
-  - [ ] 关闭应用，备份并删除 `settings.json`，重新启动：应使用新默认值（250×250、新背景色等）。
-  - [ ] 在设置页修改菜单宽度为 300 并应用，关闭重启：应保留自定义宽度，其他视觉改进仍然生效。
+  - [x] 关闭应用，备份并删除 `settings.json`，重新启动：应使用新默认值（250×250、新背景色等）。
+  - [x] 在设置页修改菜单宽度为 300 并应用，关闭重启：应保留自定义宽度，其他视觉改进仍然生效。
 
-- [ ] **Step 4：Commit（如验证通过）**
+- [x] **Step 4：Commit（如验证通过）**
 
   如全部验证通过，当前分支已包含所有提交，无需额外 commit。
 
@@ -583,13 +583,6 @@
 
 ---
 
-## 执行交接
+## 执行状态
 
-**Plan complete and saved to `docs/superpowers/plans/2026-07-04-wake-panel.md`.**
-
-Two execution options:
-
-1. **Subagent-Driven (recommended)** - Dispatch a fresh subagent per task, review between tasks, fast iteration.
-2. **Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints.
-
-Which approach would you like?
+本计划已执行完毕。所有任务完成并通过 spec / 代码质量双重审核；Release 构建通过，手工验证通过。

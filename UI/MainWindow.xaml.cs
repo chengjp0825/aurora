@@ -51,6 +51,7 @@ public partial class MainWindow : Window
     /// </summary>
     internal void ApplyMenuSettings(MenuSettings menu)
     {
+        // 窗口 = 内容区 + 24 DIP（左右/上下各 12 DIP 投影边距）
         Width = menu.Width + 24;
         Height = menu.Height + 24;
         RootBorder.Background = BrushHelper.ToBrush(menu.Background);

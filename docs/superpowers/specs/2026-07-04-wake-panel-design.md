@@ -67,7 +67,7 @@
 ### 3.4 唤醒动画
 
 - 触发：在 `WakeUp(POINT)` 中定位完成后播放。
-- 效果：Opacity 0→1（150ms，EaseOutQuart）+ ScaleTransform 0.95→1（150ms，EaseOutBack）。
+- 效果：Opacity 0→1（150ms，QuarticEase EaseOut）+ ScaleTransform 0.95→1（150ms，QuarticEase EaseOut）。
 - 约束：动画期间不阻塞定位与 `SetWindowPos`；若用户连续触发，以当前状态为准，不堆叠动画。
 - 隐藏：保持现有 `Sleep()` 的即时 `Opacity=0`，不加动画（避免用户点击后延迟消失）。
 
@@ -138,7 +138,7 @@ public string ButtonHoverBackground { get; set; } = "#38FFFFFF";
 
 - 动画对象应使用 `Storyboard` 或 `DoubleAnimation`，在 `BeginAnimation` 前检查当前值，避免重复调用导致闪烁。
 - 动画期间 `OnAnyMouseDown` 仍正常工作；若用户在动画播放时点击外部，直接 `Sleep()` 并将 Opacity 设为 0（可调用 `BeginAnimation(Opacity, null)` 清除动画）。
-- 阴影层使用 `BlurEffect` 而非 `DropShadowEffect`，避免透明窗口渲染异常；`BlurRadius=18` 在 96/144 DPI 下表现稳定。
+- 阴影层使用 `BlurEffect` 而非 `DropShadowEffect`，避免透明窗口渲染异常；`BlurRadius=12` 在 96/144 DPI 下表现稳定。
 
 ### 4.5 不变项
 
