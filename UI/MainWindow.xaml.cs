@@ -68,6 +68,10 @@ public partial class MainWindow : Window
     /// </summary>
     internal void OnHookWakeupClick(object? sender, POINT e)
     {
+        // 面板已可见时，后续唤醒动作一律无效（不重弹、不关闭）；关闭靠点外面或点动作。
+        if (IsVisible)
+            return;
+
         PositionAtCursor(e); // place before show (avoids flicker once hwnd exists)
 
         // Hot-reload actions from disk on every wake-up so edits to
