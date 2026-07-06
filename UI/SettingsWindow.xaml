@@ -347,6 +347,23 @@
                                 <ColumnDefinition Width="200" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="网格布局" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="唤醒菜单的格子列数" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" x:Name="MenuGridColumnsCombo"
+                                      Style="{StaticResource FlatComboBox}"
+                                      Width="200" HorizontalAlignment="Right" SelectedIndex="1">
+                                <ComboBoxItem Content="2 × 2" />
+                                <ComboBoxItem Content="3 × 3" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
                                 <TextBlock Style="{StaticResource FieldTitle}" Text="面板宽度" />
                                 <TextBlock Style="{StaticResource FieldDesc}" Text="内容区宽度，单位 DIP" />
                             </StackPanel>

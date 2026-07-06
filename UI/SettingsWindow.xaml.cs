@@ -68,6 +68,7 @@ public partial class SettingsWindow : Window
         MenuCornerRadiusBox.Text = _viewModel.Menu.CornerRadius.ToString(CultureInfo.InvariantCulture);
         MenuButtonBgBox.Text = _viewModel.Menu.ButtonBackground;
         MenuButtonHoverBgBox.Text = _viewModel.Menu.ButtonHoverBackground;
+        MenuGridColumnsCombo.SelectedIndex = _viewModel.Menu.GridColumns == 2 ? 0 : 1;
 
         // Pin
         PinBorderColorBox.Text = _viewModel.Pin.BorderColor;
@@ -185,6 +186,7 @@ public partial class SettingsWindow : Window
         _viewModel.Menu.CornerRadius = int.Parse(MenuCornerRadiusBox.Text, CultureInfo.InvariantCulture);
         _viewModel.Menu.ButtonBackground = MenuButtonBgBox.Text;
         _viewModel.Menu.ButtonHoverBackground = MenuButtonHoverBgBox.Text;
+        _viewModel.Menu.GridColumns = MenuGridColumnsCombo.SelectedIndex == 0 ? 2 : 3;
 
         // Pin
         _viewModel.Pin.BorderColor = PinBorderColorBox.Text;
