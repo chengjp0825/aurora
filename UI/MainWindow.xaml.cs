@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -46,7 +47,11 @@ public partial class MainWindow : Window, IMenuPresenter
     /// <summary>
     /// 运行时构造函数：所有依赖由组合根注入，View 内部禁止自行构造服务。
     /// </summary>
-    public MainWindow(ActionExecutor executor, CommandContext commandContext, Preferences preferences)
+    public MainWindow(
+        ActionExecutor executor,
+        CommandContext commandContext,
+        Preferences preferences,
+        List<MenuGroup> menuGroups)
     {
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
         _commandContext = commandContext ?? throw new ArgumentNullException(nameof(commandContext));
@@ -60,21 +65,25 @@ public partial class MainWindow : Window, IMenuPresenter
 
         // 关键视觉参数从统一配置注入；ApplyMenuSettings 同时供 SettingsWindow 应用后即时刷新。
         ApplyMenuSettings(_preferences.Menu);
-        // 预绑定动作列表（内存缓存，无 IO）。唤醒时不再重绑。
-        RefreshActions();
+        // 预绑定动作列表（构造注入，无 IO）。唤醒时不再重绑。
+        RefreshActions(menuGroups ?? new List<MenuGroup>());
     }
 
     /// <summary>
     /// 设置保存后重新绑定运行时依赖：组合根重建 ActionExecutor、CommandContext 与菜单设置后，
     /// 通过此接缝刷新主窗口，避免就地修补已有运行时对象。
     /// </summary>
-    internal void RebindRuntime(ActionExecutor executor, CommandContext commandContext, Preferences preferences)
+    internal void RebindRuntime(
+        ActionExecutor executor,
+        CommandContext commandContext,
+        Preferences preferences,
+        List<MenuGroup> menuGroups)
     {
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
         _commandContext = commandContext ?? throw new ArgumentNullException(nameof(commandContext));
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         ApplyMenuSettings(_preferences.Menu);
-        RefreshActions();
+        RefreshActions(menuGroups ?? new List<MenuGroup>());
     }
 
     #region IMenuPresenter（显式实现，避免与 Window/UIElement 成员冲突）
@@ -128,10 +137,10 @@ public partial class MainWindow : Window, IMenuPresenter
         Resources["MenuButtonHoverBackgroundBrush"] = BrushHelper.SafeToBrush(menu.ButtonHoverBackground, System.Windows.Media.Brushes.Transparent);
     }
 
-    /// <summary>从 ActionStore 内存缓存重绑动作列表（无 IO）。构造时与设置页保存后调用。</summary>
-    internal void RefreshActions()
+    /// <summary>从传入的 MenuGroups 重绑动作列表（无 IO）。构造时与设置页保存后调用。</summary>
+    internal void RefreshActions(List<MenuGroup> menuGroups)
     {
-        ActionsControl.ItemsSource = ActionStore.GetActions();
+        ActionsControl.ItemsSource = menuGroups.SelectMany(g => g.Actions).ToList();
     }
 
     /// <summary>

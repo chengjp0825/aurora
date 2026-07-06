@@ -58,32 +58,29 @@ internal sealed class AppBootstrapper
 
     private void BuildRuntime(Settings settings)
     {
-        // 1. 动作数据同步到内存缓存，唤醒路径零 IO。
-        ActionStore.UpdateCache(settings.MenuGroups);
-
-        // 2. 运行时基础设施：截图服务按最新 SnippingSettings 重建。
+        // 1. 运行时基础设施：截图服务按最新 SnippingSettings 重建。
         var screenshotCaptureService = new ScreenshotCaptureService(settings.Preferences.Snipping);
         _commandContext = new CommandContext(_processLauncher, screenshotCaptureService);
 
-        // 3. 构建命令注册中心：先内建、后用户，保证内建命令不被用户配置覆盖。
+        // 2. 构建命令注册中心：先内建、后用户，保证内建命令不被用户配置覆盖。
         var registry = new CommandRegistry();
         BuiltInCommandProvider.Register(registry);
         UserCommandStore.Register(registry, settings.Commands);
 
-        // 4. 构建动作执行调度中心。
+        // 3. 构建动作执行调度中心。
         _actionExecutor = new ActionExecutor(registry, settings.Commands);
 
-        // 5. 主窗口：首次创建，后续重新绑定依赖。
+        // 4. 主窗口：首次创建，后续重新绑定依赖；MenuGroups 由构造注入，不再依赖 ActionStore 静态缓存。
         if (_mainWindow is null)
         {
-            _mainWindow = new MainWindow(_actionExecutor, _commandContext, settings.Preferences);
+            _mainWindow = new MainWindow(_actionExecutor, _commandContext, settings.Preferences, settings.MenuGroups);
         }
         else
         {
-            _mainWindow.RebindRuntime(_actionExecutor, _commandContext, settings.Preferences);
+            _mainWindow.RebindRuntime(_actionExecutor, _commandContext, settings.Preferences, settings.MenuGroups);
         }
 
-        // 6. 唤醒策略中枢：首次创建，后续更新设置。
+        // 5. 唤醒策略中枢：首次创建，后续更新设置。
         var orchestratorSettings = new WakeOrchestratorSettings(
             DebounceInterval: TimeSpan.FromMilliseconds(200),
             StaleEventThreshold: TimeSpan.FromSeconds(1),
@@ -103,7 +100,7 @@ internal sealed class AppBootstrapper
             _wakeOrchestrator.UpdateSettings(orchestratorSettings);
         }
 
-        // 7. 全局钩子服务：首次创建，后续只更新触发器列表。
+        // 6. 全局钩子服务：首次创建，后续只更新触发器列表。
         if (_hookService is null)
         {
             _hookService = new GlobalHookService(_syncContext, _timeProvider);
