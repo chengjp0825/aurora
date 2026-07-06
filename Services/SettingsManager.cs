@@ -4,6 +4,8 @@ using System.IO;
 using System.Text.Json;
 using MyQuicker.Domain.DTO;
 
+#pragma warning disable CS0618 // 迁移代码需要读取旧版 ActionItem.Command 字段。
+
 namespace MyQuicker.Services;
 
 /// <summary>
@@ -420,3 +422,5 @@ internal sealed class SettingsManager
         }
     }
 }
+
+#pragma warning restore CS0618

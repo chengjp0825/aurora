@@ -278,4 +278,68 @@ public class WakeOrchestratorTests
         Assert.Equal(2, presenter.ShowAtCalls.Count);
         Assert.Equal(MenuState.Opening, orch.State);
     }
+
+    [Fact]
+    public void Constructor_NullDependencies_ThrowArgumentNullException()
+    {
+        var presenter = new FakeMenuPresenter();
+        var screens = new FakeScreenGeometry();
+        var time = new FakeTimeProvider();
+        var blockPolicy = new FakeWakeBlockPolicy();
+        var settings = new WakeOrchestratorSettings(
+            DebounceInterval: TimeSpan.FromMilliseconds(200),
+            StaleEventThreshold: TimeSpan.FromSeconds(1),
+            MenuWidth: DefaultMenuWidth,
+            MenuHeight: DefaultMenuHeight);
+
+        Assert.Throws<ArgumentNullException>(() => new WakeOrchestrator(null!, screens, time, blockPolicy, null, settings));
+        Assert.Throws<ArgumentNullException>(() => new WakeOrchestrator(presenter, null!, time, blockPolicy, null, settings));
+        Assert.Throws<ArgumentNullException>(() => new WakeOrchestrator(presenter, screens, null!, blockPolicy, null, settings));
+        Assert.Throws<ArgumentNullException>(() => new WakeOrchestrator(presenter, screens, time, null!, null, settings));
+        Assert.Throws<ArgumentNullException>(() => new WakeOrchestrator(presenter, screens, time, blockPolicy, null, null!));
+    }
+
+    [Fact]
+    public void UpdateSettings_UsesNewMenuDimensions()
+    {
+        var orch = CreateOrchestrator(out var presenter, out var screens, out var time, out _, out _);
+        screens.AddScreen(new ScreenInfo(new ScreenBounds(0, 0, 1920, 1080), 1.0, 1.0));
+
+        orch.UpdateSettings(new WakeOrchestratorSettings(
+            DebounceInterval: TimeSpan.FromMilliseconds(200),
+            StaleEventThreshold: TimeSpan.FromSeconds(1),
+            MenuWidth: 400,
+            MenuHeight: 300));
+
+        orch.OnWakeContext(new WakeContext(new Point(1900, 1000), time.MonotonicTimestamp, "MiddleButton"));
+
+        Assert.Single(presenter.ShowAtCalls);
+        Assert.Equal(new Point(1920 - 400, 1080 - 300), presenter.ShowAtCalls[0]);
+    }
+
+    [Fact]
+    public void OnWakeContext_OnSecondScreen_UsesSecondScreenBounds()
+    {
+        var orch = CreateOrchestrator(out var presenter, out var screens, out var time, out _, out _);
+        screens.AddScreen(new ScreenInfo(new ScreenBounds(0, 0, 1920, 1080), 1.0, 1.0));
+        screens.AddScreen(new ScreenInfo(new ScreenBounds(1920, 0, 1920, 1080), 1.0, 1.0));
+
+        orch.OnWakeContext(new WakeContext(new Point(2500, 500), time.MonotonicTimestamp, "MiddleButton"));
+
+        Assert.Single(presenter.ShowAtCalls);
+        // Menu centered at (2500,500) => left=2375, top=375, fully inside second screen.
+        Assert.Equal(new Point(2375, 375), presenter.ShowAtCalls[0]);
+    }
+
+    [Fact]
+    public void OnWakeContext_NearBottomEdge_ClampsLocationToFitScreen()
+    {
+        var orch = CreateOrchestrator(out var presenter, out var screens, out var time, out _, out _);
+        screens.AddScreen(new ScreenInfo(new ScreenBounds(0, 0, 1920, 1080), 1.0, 1.0));
+
+        orch.OnWakeContext(new WakeContext(new Point(100, 1060), time.MonotonicTimestamp, "MiddleButton"));
+
+        Assert.Single(presenter.ShowAtCalls);
+        Assert.Equal(new Point(0, (int)(1080 - DefaultMenuHeight)), presenter.ShowAtCalls[0]);
+    }
 }

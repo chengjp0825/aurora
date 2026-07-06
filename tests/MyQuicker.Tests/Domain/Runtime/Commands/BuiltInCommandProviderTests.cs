@@ -1,3 +1,4 @@
+using System;
 using MyQuicker.Domain.DTO;
 using MyQuicker.Domain.Runtime.Commands;
 using MyQuicker.Services;
@@ -17,5 +18,11 @@ public class BuiltInCommandProviderTests
         var command = registry.Lookup("sys:snipping");
         Assert.NotNull(command);
         Assert.IsType<SnippingCommand>(command);
+    }
+
+    [Fact]
+    public void Register_NullRegistry_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => BuiltInCommandProvider.Register(null!));
     }
 }

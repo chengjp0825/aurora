@@ -6,6 +6,7 @@ using Xunit;
 
 namespace MyQuicker.Tests.Services;
 
+[Collection("SettingsManagerSerial")]
 public class SettingsManagerTests
 {
     [Fact]
