@@ -71,9 +71,7 @@ internal sealed class AppBootstrapper
             screenshotCaptureService,
             screenshotOverlay,
             screenshotPinService,
-            toastService,
-            settings.Preferences.Snipping,
-            settings.Preferences.Pin);
+            toastService);
         _commandContext = new CommandContext(_processLauncher, screenshotCaptureService, screenshotWorkflow, toastService);
 
         // 2. 构建命令注册中心：先内建、后用户，保证内建命令不被用户配置覆盖。

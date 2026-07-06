@@ -7,6 +7,7 @@ namespace MyQuicker.Domain.Runtime.Commands;
 /// <summary>发起屏幕截图工作流。</summary>
 public sealed class SnippingCommand : ICommand
 {
+    /// <inheritdoc/>
     public ActionResult Execute(CommandContext context, Dictionary<string, string> parameters)
     {
         if (context is null)
@@ -19,6 +20,7 @@ public sealed class SnippingCommand : ICommand
         return new ActionResult(ActionOutcomeKind.StartedProcess);
     }
 
+    /// <inheritdoc/>
     public Task<ActionResult> ExecuteAsync(CommandContext context, Dictionary<string, string> parameters)
     {
         return Task.FromResult(Execute(context, parameters));

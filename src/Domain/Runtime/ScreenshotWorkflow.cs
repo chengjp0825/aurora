@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading;
 using System.Threading.Tasks;
-using MyQuicker.Domain.DTO;
 using MyQuicker.Services;
 
 namespace MyQuicker.Domain.Runtime;
@@ -12,6 +11,7 @@ namespace MyQuicker.Domain.Runtime;
 /// 截图工作流编排器：Capture → Select Region → Pin。
 /// 把原先散落在 <see cref="UI.MainWindow"/> 与 <see cref="UI.ScreenshotWindow"/> 中的流程收敛到可测试的单一入口。
 /// 本类仅依赖 GDI+，不引用任何 WPF 类型，保证领域层与 UI 框架解耦。
+/// 视觉参数由具体适配器（如 <see cref="MyQuicker.Services.ScreenshotOverlayAdapter"/>）持有，不在工作流中重复传递。
 /// </summary>
 public class ScreenshotWorkflow
 {
@@ -19,23 +19,18 @@ public class ScreenshotWorkflow
     private readonly IScreenshotOverlay _overlay;
     private readonly IScreenshotPinService _pinService;
     private readonly IToastService _toastService;
-    private readonly SnippingSettings _snippingSettings;
 
     /// <summary>初始化工作流及其所有依赖。</summary>
     public ScreenshotWorkflow(
         IScreenshotCaptureService captureService,
         IScreenshotOverlay overlay,
         IScreenshotPinService pinService,
-        IToastService toastService,
-        SnippingSettings snippingSettings,
-        PinSettings pinSettings)
+        IToastService toastService)
     {
         _captureService = captureService ?? throw new ArgumentNullException(nameof(captureService));
         _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
         _pinService = pinService ?? throw new ArgumentNullException(nameof(pinService));
         _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
-        _snippingSettings = snippingSettings ?? throw new ArgumentNullException(nameof(snippingSettings));
-        _ = pinSettings ?? throw new ArgumentNullException(nameof(pinSettings));
     }
 
     /// <summary>执行完整截图工作流。</summary>
