@@ -15,8 +15,6 @@ using Cursors = System.Windows.Input.Cursors;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
-using Clipboard = System.Windows.Clipboard;
-
 namespace MyQuicker.UI;
 
 /// <summary>
@@ -49,26 +47,19 @@ public partial class ScreenshotWindow : Window
     /// <summary>判定"点击 vs 拖拽"的位移阈值（DIP）。超过即升级为拖拽。</summary>
     private readonly double _dragThreshold;
 
-    /// <summary>截图后行为配置（剪贴板/钉贴图/两者）。</summary>
-    private readonly SnippingAfterScreenshot _afterScreenshot;
+    /// <summary>用户成功选区后返回的物理屏幕坐标矩形；取消或未选区时为 null。</summary>
+    public Rectangle? SelectedBounds { get; private set; }
 
-    /// <summary>贴图窗口视觉参数。</summary>
-    private readonly PinSettings _pinSettings;
-
-    public ScreenshotWindow(BitmapSource source, Rectangle bounds, SnippingSettings snippingSettings, PinSettings pinSettings)
+    public ScreenshotWindow(BitmapSource source, Rectangle bounds, SnippingSettings snippingSettings)
     {
         if (snippingSettings is null)
             throw new ArgumentNullException(nameof(snippingSettings));
-        if (pinSettings is null)
-            throw new ArgumentNullException(nameof(pinSettings));
 
         InitializeComponent();
 
         _baseImage = source;
         _bounds = bounds;
         _dragThreshold = snippingSettings.DragThreshold;
-        _afterScreenshot = snippingSettings.AfterScreenshot;
-        _pinSettings = pinSettings;
 
         // 按 bounds 所在显示器取真实 DPI（主副屏缩放不一致时各屏分别取，docs/02 §5）。
         var (sx, sy) = DpiHelper.ScaleForBounds(bounds);
@@ -98,6 +89,16 @@ public partial class ScreenshotWindow : Window
         // HWND 创建后用 GetDpiForWindow(hwnd) 取确定性 DPI——AllowsTransparency=False
         // 配合 per-monitor V2 manifest 后，该值即为窗口所在显示器真实缩放，彻底解决 KI-1。
         SourceInitialized += OnSourceInitialized;
+    }
+
+    /// <summary>
+    /// 兼容旧四参数构造的过渡重载；剪贴板/钉贴图逻辑已移出本窗口，
+    /// <paramref name="pinSettings"/> 仅用于匹配签名，不参与任何行为。
+    /// </summary>
+    [System.Obsolete("Use the three-parameter constructor; pin/clipboard handling moved to ScreenshotWorkflow.")]
+    public ScreenshotWindow(BitmapSource source, Rectangle bounds, SnippingSettings snippingSettings, PinSettings pinSettings)
+        : this(source, bounds, snippingSettings)
+    {
     }
 
     /// <summary>HWND 创建后：物理坐标强制定位 + 用实际渲染 DPI 重算尺寸，并订阅 DPI 变化。</summary>
@@ -340,7 +341,8 @@ public partial class ScreenshotWindow : Window
     }
 
     /// <summary>
-    /// 结算选区：按窗口本地坐标（= 底图像素）裁剪、写剪贴板、钉贴图。
+    /// 结算选区：把 DIP 窗口本地选区转换为物理屏幕坐标，写入 <see cref="SelectedBounds"/>，
+    /// 并设置 <see cref="Window.DialogResult"/> = true。裁剪、剪贴板与钉贴图由调用方（工作流）负责。
     /// 智能快照（模式 A）与手动拖拽（模式 B 松开时）共用此路径。
     /// </summary>
     private void SettleSelection(Rect selection)
@@ -358,32 +360,9 @@ public partial class ScreenshotWindow : Window
         if (w <= 0 || h <= 0)
             return;
 
-        // 窗口本地坐标与底图像素 1:1，直接裁剪。
-        var crop = new CroppedBitmap(_baseImage, new Int32Rect(x, y, w, h));
-        crop.Freeze();
-
-        // 结算：按 AfterScreenshot 决定写剪贴板 / 钉贴图 / 两者。
-        // 选区左上角的绝对屏幕坐标 = 虚拟屏原点 + 窗口本地坐标，让贴图落在截图原位。
-        // 用 Show()（非模态）打开，确保截图罩 Close() 后贴图窗口仍存活。
-        if (_afterScreenshot != SnippingAfterScreenshot.PinOnly)
-        {
-            try
-            {
-                Clipboard.SetImage(crop);
-            }
-            catch (Exception ex)
-            {
-                // 剪贴板被其它进程独占（RDP/剪贴板管理器）：不阻断流程，弹 toast 告知用户。
-                Debug.WriteLine($"ERROR: 写剪贴板失败: {ex.Message}");
-                Toast.Show("⚠ 剪贴板被占用，截图未复制", 3000);
-            }
-        }
-
-        if (_afterScreenshot != SnippingAfterScreenshot.CopyOnly)
-        {
-            // 传截图同屏 scale，保证贴图 1:1（贴图与截图同显示器，DPI 一致）。
-            new PinWindow(crop, _bounds.X + x, _bounds.Y + y, _scaleX, _scaleY, _pinSettings).Show();
-        }
+        // 选区左上角的绝对屏幕坐标 = 虚拟屏原点 + 窗口本地坐标。
+        SelectedBounds = new Rectangle(_bounds.X + x, _bounds.Y + y, w, h);
+        DialogResult = true;
     }
 
     /// <summary>寻边失败时清空选区：清 _currentSelection、撤回镂空与红框。</summary>
