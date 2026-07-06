@@ -70,6 +70,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         dst.CornerRadius = src.CornerRadius;
         dst.ButtonBackground = src.ButtonBackground;
         dst.ButtonHoverBackground = src.ButtonHoverBackground;
+        dst.GridColumns = src.GridColumns;
     }
 
     private static void Copy(PinSettings src, PinSettings dst)
