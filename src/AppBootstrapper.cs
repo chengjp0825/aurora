@@ -26,11 +26,13 @@ internal sealed class AppBootstrapper
     private TriggerEvaluator _triggerEvaluator = null!;
     private WakeOrchestrator _wakeOrchestrator = null!;
     private MainWindow _mainWindow = null!;
+    private MainWindowOutsideClickSource _mainWindowOutsideClickSource = null!;
     private CommandContext _commandContext = null!;
     private ActionExecutor _actionExecutor = null!;
 
     public SettingsManager SettingsManager => _settingsManager;
     public MainWindow MainWindow => _mainWindow;
+    public MainWindowOutsideClickSource MainWindowOutsideClickSource => _mainWindowOutsideClickSource;
     public RawInputSource RawInputSource => _rawInputSource;
     public TriggerEvaluator TriggerEvaluator => _triggerEvaluator;
     public WakeOrchestrator WakeOrchestrator => _wakeOrchestrator;
@@ -83,6 +85,10 @@ internal sealed class AppBootstrapper
         }
 
         // 5. 唤醒策略中枢：首次创建，后续更新设置。
+        //    阻塞策略与外部点击源与主窗口生命周期绑定，首次创建后复用。
+        _mainWindowOutsideClickSource ??= new MainWindowOutsideClickSource(_mainWindow);
+        var wakeBlockPolicy = new OverlayWakeBlockPolicy();
+
         var orchestratorSettings = new WakeOrchestratorSettings(
             DebounceInterval: TimeSpan.FromMilliseconds(200),
             StaleEventThreshold: TimeSpan.FromSeconds(1),
@@ -95,6 +101,8 @@ internal sealed class AppBootstrapper
                 _mainWindow,
                 _screenGeometry,
                 _timeProvider,
+                wakeBlockPolicy,
+                _mainWindowOutsideClickSource,
                 orchestratorSettings);
         }
         else

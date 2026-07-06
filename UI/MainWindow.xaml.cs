@@ -88,11 +88,10 @@ public partial class MainWindow : Window, IMenuPresenter
 
     #region IMenuPresenter（显式实现，避免与 Window/UIElement 成员冲突）
 
-    bool IMenuPresenter.IsVisible => _isAwake;
+    /// <summary>菜单当前是否处于唤醒（可见）状态。</summary>
+    internal bool IsAwake => _isAwake;
 
-    bool IMenuPresenter.IsBlocked =>
-        System.Windows.Application.Current?.Windows.OfType<ScreenshotWindow>().Any() == true ||
-        System.Windows.Application.Current?.Windows.OfType<SettingsWindow>().Any() == true;
+    bool IMenuPresenter.IsVisible => _isAwake;
 
     event EventHandler? IMenuPresenter.Opened
     {
@@ -216,23 +215,16 @@ public partial class MainWindow : Window, IMenuPresenter
         storyboard.Begin();
     }
 
-    /// <summary>
-    /// Handler for <see cref="RawInputSource.AnyMouseDown"/>: if any mouse button is pressed
-    /// outside the window bounds while we are awake, request dismissal. The orchestrator
-    /// will then command the physical hide. The click itself is not blocked,
-    /// so it also reaches the underlying application.
-    /// </summary>
-    internal void OnAnyMouseDown(object? sender, DomainPoint e)
+    /// <summary>菜单内容区在当前屏幕坐标系下的边界（已含 DPI 逻辑坐标转换）。</summary>
+    internal Rect ContentBounds
     {
-        if (!_isAwake)
-            return;
-
-        var p = ToLogical(e);
-        var contentBounds = RootBorder.TransformToAncestor(this)
-            .TransformBounds(new Rect(0, 0, RootBorder.ActualWidth, RootBorder.ActualHeight));
-        contentBounds.Offset(Left, Top);
-        if (!contentBounds.Contains(p))
-            RaiseDismissRequested();
+        get
+        {
+            var contentBounds = RootBorder.TransformToAncestor(this)
+                .TransformBounds(new Rect(0, 0, RootBorder.ActualWidth, RootBorder.ActualHeight));
+            contentBounds.Offset(Left, Top);
+            return contentBounds;
+        }
     }
 
     /// <summary>
@@ -322,9 +314,9 @@ public partial class MainWindow : Window, IMenuPresenter
 
     /// <summary>
     /// 物理屏幕坐标（Point，像素）转逻辑坐标（DIP），
-    /// 供 OnAnyMouseDown 复用，统一 DPI 处理入口。
+    /// 供外部点击检测复用，统一 DPI 处理入口。
     /// </summary>
-    private WpfPoint ToLogical(DomainPoint physical)
+    internal WpfPoint ToLogical(DomainPoint physical)
     {
         var source = PresentationSource.FromVisual(this);
         if (source?.CompositionTarget is not null)

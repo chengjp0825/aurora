@@ -54,7 +54,7 @@ public partial class App : Application
         _bootstrapper.MainWindow.OpenSettingsAction = OpenSettings;
 
         _bootstrapper.RawInputSource.WakeContextReceived += (s, ctx) => _bootstrapper.WakeOrchestrator.OnWakeContext(ctx);
-        _bootstrapper.RawInputSource.AnyMouseDown += _bootstrapper.MainWindow.OnAnyMouseDown;
+        _bootstrapper.RawInputSource.AnyMouseDown += _bootstrapper.MainWindowOutsideClickSource.OnMouseDown;
 
         // 预热（docs/03 §7.2）：屏幕外 + 透明 + Show 一次，强迫 WPF 完成 XAML 解析、
         // 模板绑定与 GPU 材质编译。窗口已渲染在内存，用户不可见；唤醒仅瞬移+显透明度。
@@ -133,7 +133,7 @@ public partial class App : Application
     {
         if (_bootstrapper?.RawInputSource is { } source)
         {
-            source.AnyMouseDown -= _bootstrapper.MainWindow.OnAnyMouseDown;
+            source.AnyMouseDown -= _bootstrapper.MainWindowOutsideClickSource.OnMouseDown;
             source.Stop();
             source.Dispose();
         }
