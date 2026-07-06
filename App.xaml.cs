@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
+using MyQuicker.Domain.DTO;
+using MyQuicker.Domain.Runtime;
 using MyQuicker.Interop;
-using MyQuicker.Models;
 using MyQuicker.Services;
 using MyQuicker.UI;
 using Application = System.Windows.Application;
@@ -16,8 +18,7 @@ namespace MyQuicker;
 /// </summary>
 public partial class App : Application
 {
-    private GlobalHookService? _hookService;
-    private MainWindow? _mainWindow;
+    private AppBootstrapper _bootstrapper = null!;
     private NotifyIcon? _notifyIcon;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -45,42 +46,49 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        // 统一配置：加载 settings.json（首次自动迁移旧 appsettings.json 的唤醒键与动作列表）。
-        SettingsManager.Instance.Load();
-        // 动作数据一次性载入内存缓存，唤醒路径零 IO（docs/03 §7.4）。
-        ActionStore.Init(SettingsManager.Instance.Settings.Action);
+        // 组合根：按 CLAUDE.md §2 启动链路单向构建全部运行时对象。
+        _bootstrapper = new AppBootstrapper();
+        _bootstrapper.Run();
+        var settings = _bootstrapper.SettingsManager.Settings;
 
-        _hookService = new GlobalHookService();
-        _hookService.UpdateSettings(SettingsManager.Instance.Settings.Action);
+        _bootstrapper.MainWindow.OpenSettingsAction = OpenSettings;
 
-        _mainWindow = new MainWindow();
-        _mainWindow.OpenSettingsAction = OpenSettings;
-        _hookService.OnWakeupClick += _mainWindow.OnHookWakeupClick;
-        _hookService.OnAnyMouseDown += _mainWindow.OnAnyMouseDown;
+        _bootstrapper.HookService.OnWakeupTriggered += (s, ctx) => _bootstrapper.WakeOrchestrator.OnWakeContext(ctx);
+        _bootstrapper.HookService.OnAnyMouseDown += _bootstrapper.MainWindow.OnAnyMouseDown;
 
         // 预热（docs/03 §7.2）：屏幕外 + 透明 + Show 一次，强迫 WPF 完成 XAML 解析、
         // 模板绑定与 GPU 材质编译。窗口已渲染在内存，用户不可见；唤醒仅瞬移+显透明度。
-        _mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-        _mainWindow.Left = -9999;
-        _mainWindow.Top = -9999;
-        _mainWindow.Opacity = 0;
-        _mainWindow.Show();
+        _bootstrapper.MainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _bootstrapper.MainWindow.Left = -9999;
+        _bootstrapper.MainWindow.Top = -9999;
+        _bootstrapper.MainWindow.Opacity = 0;
+        _bootstrapper.MainWindow.Show();
 
-        _hookService.Start();
+        _bootstrapper.HookService.Start();
 
         InitializeTray();
 
         // 启动 toast：主窗口无任务栏入口，需明确告知已启动 + 提示当前唤醒方式。
-        var action = SettingsManager.Instance.Settings.Action;
-        string hint = action.WakeupMessage == ActionSettings.WAKEUP_CIRCLE_GESTURE ? "画圈"
-                    : action.WakeupMessage == NativeMethods.WM_XBUTTONDOWN ? "侧键"
-                    : "中键";
+        string hint = GetWakeupHint(settings.TriggerBindings.FirstOrDefault());
         Toast.Show($"MyQuicker 已启动 · {hint}唤醒");
     }
 
     /// <summary>
     /// Sets up the system tray icon with its context menu: 设置... / 退出.
     /// </summary>
+    private static string GetWakeupHint(TriggerBinding? binding)
+    {
+        if (binding is null)
+            return "中键";
+
+        return binding.Type switch
+        {
+            TriggerType.CircleGesture => "画圈",
+            TriggerType.Button when binding.WakeupMessage == NativeMethods.WM_XBUTTONDOWN => "侧键",
+            _ => "中键"
+        };
+    }
+
     private void InitializeTray()
     {
         _notifyIcon = new NotifyIcon
@@ -98,7 +106,7 @@ public partial class App : Application
 
     private void OpenSettings()
     {
-        if (_hookService is null)
+        if (_bootstrapper?.HookService is null)
             return;
 
         // 单例：已存在则激活前置，不重复创建（防画圈唤醒菜单后再次点齿轮开出第二个设置页）。
@@ -112,7 +120,8 @@ public partial class App : Application
             return;
         }
 
-        var window = new SettingsWindow(_hookService, _mainWindow);
+        var window = new SettingsWindow(_bootstrapper.SettingsManager, new SettingsBuilder());
+        window.SettingsSaved += (_, _) => _bootstrapper.RebuildRuntime();
         window.Show();
         window.Activate();
         window.Topmost = true;  // 强行置顶，穿透系统前台锁拦截
@@ -122,16 +131,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        if (_hookService is not null)
+        if (_bootstrapper?.HookService is { } hookService)
         {
-            if (_mainWindow is not null)
-            {
-                _hookService.OnWakeupClick -= _mainWindow.OnHookWakeupClick;
-                _hookService.OnAnyMouseDown -= _mainWindow.OnAnyMouseDown;
-            }
-
-            _hookService.Stop();
-            _hookService.Dispose();
+            hookService.OnAnyMouseDown -= _bootstrapper.MainWindow.OnAnyMouseDown;
+            hookService.Stop();
+            hookService.Dispose();
         }
 
         _notifyIcon?.Dispose();
@@ -139,11 +143,44 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// 全局未捕获异常兜底：记录后拦截，保活常驻托盘进程。
+    /// 全局未捕获异常兜底：分类拦截并完整记录，严禁无条件吞掉所有异常。
+    /// 安全与权限类异常被视为致命错误，强制终止进程以避免系统处于未定义状态。
     /// </summary>
     private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
     {
-        Debug.WriteLine($"ERROR: 未捕获异常已拦截: {e.Exception}");
-        e.Handled = true;
+        Exception ex = e.Exception;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"[FATAL] Unhandled dispatcher exception: {ex.GetType().FullName}");
+        sb.AppendLine($"Message: {ex.Message}");
+        sb.AppendLine($"StackTrace:\n{ex.StackTrace}");
+        if (ex.InnerException is not null)
+        {
+            sb.AppendLine($"Inner exception: {ex.InnerException.GetType().FullName}: {ex.InnerException.Message}");
+            sb.AppendLine($"Inner stack trace:\n{ex.InnerException.StackTrace}");
+        }
+        string logMessage = sb.ToString();
+
+        Debug.WriteLine(logMessage);
+        Trace.WriteLine(logMessage);
+
+        // 安全/权限类异常是毁灭性的：继续运行可能让进程处于不可信的僵尸状态。
+        if (ex is System.Security.SecurityException or UnauthorizedAccessException)
+        {
+            try
+            {
+                _notifyIcon?.Dispose();
+                _bootstrapper?.HookService.Stop();
+                _bootstrapper?.HookService.Dispose();
+            }
+            catch
+            {
+                // 清理失败不影响强制终止。
+            }
+
+            Environment.FailFast("Security/permission exception forced process termination.", ex);
+        }
+
+        // 其它未处理异常不再无条件吞掉：交给运行时处理，避免隐藏数据损坏或逻辑错误。
+        e.Handled = false;
     }
 }

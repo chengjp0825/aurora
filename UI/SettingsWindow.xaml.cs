@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime;
 using MyQuicker.Interop;
 using MyQuicker.Services;
 
@@ -20,66 +19,57 @@ namespace MyQuicker.UI;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsManager _settingsManager;
-    private readonly TriggerBinding _triggerBinding;
-    private readonly SnippingSettings _snipping;
-    private readonly MenuSettings _menu;
-    private readonly PinSettings _pin;
-    private readonly List<MenuGroup> _menuGroups;
+    private readonly SettingsBuilder _settingsBuilder;
+    private readonly SettingsViewModel _viewModel;
 
     /// <summary>设置保存并落盘后触发；订阅方（组合根）负责重建运行时对象。</summary>
     internal event EventHandler? SettingsSaved;
 
-    internal SettingsWindow(SettingsManager settingsManager)
+    internal SettingsWindow(SettingsManager settingsManager, SettingsBuilder? builder = null)
     {
         InitializeComponent();
         _settingsManager = settingsManager ?? throw new System.ArgumentNullException(nameof(settingsManager));
+        _settingsBuilder = builder ?? new SettingsBuilder();
+        _viewModel = new SettingsViewModel();
+        _viewModel.LoadFrom(settingsManager.Settings);
 
-        // 从 Settings 直接深拷贝 MenuGroups（隔离未保存编辑，无 IO）。
-        _menuGroups = CloneMenuGroups(settingsManager.Settings.MenuGroups);
-
-        var s = settingsManager.Settings;
-        // 对设置子对象做深拷贝：编辑期间仅修改副本，点“取消/X”不会污染内存中的 live DTO。
-        _triggerBinding = s.TriggerBindings.FirstOrDefault() is { } tb ? Clone(tb) : new TriggerBinding();
-        _snipping = Clone(s.Preferences.Snipping);
-        _menu = Clone(s.Preferences.Menu);
-        _pin = Clone(s.Preferences.Pin);
-
+        DataContext = _viewModel;
         PopulateControls();
         WireColorPreviews();
     }
 
     private void PopulateControls()
     {
-        WakeupKeyCombo.SelectedIndex = ToIndex(_triggerBinding);
-        InterceptWakeupCheckBox.IsChecked = _triggerBinding.InterceptWakeupKey;
-        CircleSensitivityCombo.SelectedIndex = (int)_triggerBinding.CircleSensitivity;
+        WakeupKeyCombo.SelectedIndex = ToIndex(_viewModel.TriggerBinding);
+        InterceptWakeupCheckBox.IsChecked = _viewModel.TriggerBinding.InterceptWakeupKey;
+        CircleSensitivityCombo.SelectedIndex = (int)_viewModel.TriggerBinding.CircleSensitivity;
 
         // 动作网格绑定到默认分组的 Action 列表；当前 UI 仅支持单分组编辑。
-        var defaultGroup = _menuGroups.FirstOrDefault() ?? new MenuGroup { Id = "default", DisplayName = "默认", Icon = "EFA8" };
+        var defaultGroup = _viewModel.MenuGroups.FirstOrDefault() ?? new MenuGroup { Id = "default", DisplayName = "默认", Icon = "EFA8" };
         ActionsGrid.ItemsSource = defaultGroup.Actions;
 
         // Snipping
-        SnippingDragThresholdBox.Text = _snipping.DragThreshold.ToString(CultureInfo.InvariantCulture);
-        SnippingMaskAlphaBox.Text = _snipping.MaskAlpha.ToString(CultureInfo.InvariantCulture);
-        SnippingBorderColorBox.Text = _snipping.BorderColor;
-        AfterScreenshotCombo.SelectedIndex = (int)_snipping.AfterScreenshot;
-        CaptureScopeCombo.SelectedIndex = (int)_snipping.CaptureScope;
+        SnippingDragThresholdBox.Text = _viewModel.Snipping.DragThreshold.ToString(CultureInfo.InvariantCulture);
+        SnippingMaskAlphaBox.Text = _viewModel.Snipping.MaskAlpha.ToString(CultureInfo.InvariantCulture);
+        SnippingBorderColorBox.Text = _viewModel.Snipping.BorderColor;
+        AfterScreenshotCombo.SelectedIndex = (int)_viewModel.Snipping.AfterScreenshot;
+        CaptureScopeCombo.SelectedIndex = (int)_viewModel.Snipping.CaptureScope;
 
         // Menu
-        MenuWidthBox.Text = _menu.Width.ToString(CultureInfo.InvariantCulture);
-        MenuHeightBox.Text = _menu.Height.ToString(CultureInfo.InvariantCulture);
-        MenuBackgroundBox.Text = _menu.Background;
-        MenuCornerRadiusBox.Text = _menu.CornerRadius.ToString(CultureInfo.InvariantCulture);
-        MenuButtonBgBox.Text = _menu.ButtonBackground;
-        MenuButtonHoverBgBox.Text = _menu.ButtonHoverBackground;
+        MenuWidthBox.Text = _viewModel.Menu.Width.ToString(CultureInfo.InvariantCulture);
+        MenuHeightBox.Text = _viewModel.Menu.Height.ToString(CultureInfo.InvariantCulture);
+        MenuBackgroundBox.Text = _viewModel.Menu.Background;
+        MenuCornerRadiusBox.Text = _viewModel.Menu.CornerRadius.ToString(CultureInfo.InvariantCulture);
+        MenuButtonBgBox.Text = _viewModel.Menu.ButtonBackground;
+        MenuButtonHoverBgBox.Text = _viewModel.Menu.ButtonHoverBackground;
 
         // Pin
-        PinBorderColorBox.Text = _pin.BorderColor;
-        PinDefaultOpacityBox.Text = _pin.DefaultOpacity.ToString(CultureInfo.InvariantCulture);
-        PinDefaultShowBorderBox.IsChecked = _pin.DefaultShowBorder;
-        PinDefaultAnnotationModeBox.IsChecked = _pin.DefaultAnnotationMode;
-        PinDefaultTopmostBox.IsChecked = _pin.DefaultTopmost;
-        PinDefaultShowShadowBox.IsChecked = _pin.DefaultShowShadow;
+        PinBorderColorBox.Text = _viewModel.Pin.BorderColor;
+        PinDefaultOpacityBox.Text = _viewModel.Pin.DefaultOpacity.ToString(CultureInfo.InvariantCulture);
+        PinDefaultShowBorderBox.IsChecked = _viewModel.Pin.DefaultShowBorder;
+        PinDefaultAnnotationModeBox.IsChecked = _viewModel.Pin.DefaultAnnotationMode;
+        PinDefaultTopmostBox.IsChecked = _viewModel.Pin.DefaultTopmost;
+        PinDefaultShowShadowBox.IsChecked = _viewModel.Pin.DefaultShowShadow;
     }
 
     private void WireColorPreviews()
@@ -138,6 +128,12 @@ public partial class SettingsWindow : Window
         return 0; // 中键
     }
 
+    /// <summary>
+    /// 把当前 UI 下拉索引转换为 SettingsBuilder 期望的唤醒键索引。
+    /// UI 下拉仅有 3 项（0=中键 / 1=侧键 / 2=画圈），Builder 用 3 表示画圈。
+    /// </summary>
+    private static int ToBuilderWakeupKeyIndex(int uiIndex) => uiIndex == 2 ? 3 : uiIndex;
+
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         _ = SaveAndCloseAsync();
@@ -158,73 +154,59 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        // Trigger binding
-        int index = WakeupKeyCombo.SelectedIndex;
-        _triggerBinding.Type = index == 2 ? TriggerType.CircleGesture : TriggerType.Button;
-        _triggerBinding.WakeupMessage = index switch
-        {
-            1 => NativeMethods.WM_XBUTTONDOWN,
-            2 => null,
-            _ => NativeMethods.WM_MBUTTONDOWN,
-        };
-        _triggerBinding.XButtonData = index == 1 ? 1 : null;
-        _triggerBinding.InterceptWakeupKey = InterceptWakeupCheckBox.IsChecked == true;
-        _triggerBinding.CircleSensitivity = (CircleSensitivity)CircleSensitivityCombo.SelectedIndex;
+        // Sync trigger binding from UI into the view-model copy.
+        var triggerBinding = _settingsBuilder.BuildTriggerBinding(
+            ToBuilderWakeupKeyIndex(WakeupKeyCombo.SelectedIndex),
+            InterceptWakeupCheckBox.IsChecked == true,
+            CircleSensitivityCombo.SelectedIndex);
+        _viewModel.TriggerBinding.Type = triggerBinding.Type;
+        _viewModel.TriggerBinding.WakeupMessage = triggerBinding.WakeupMessage;
+        _viewModel.TriggerBinding.XButtonData = triggerBinding.XButtonData;
+        _viewModel.TriggerBinding.InterceptWakeupKey = triggerBinding.InterceptWakeupKey;
+        _viewModel.TriggerBinding.CircleSensitivity = triggerBinding.CircleSensitivity;
 
         // Snipping
-        _snipping.DragThreshold = double.Parse(SnippingDragThresholdBox.Text, CultureInfo.InvariantCulture);
-        _snipping.MaskAlpha = double.Parse(SnippingMaskAlphaBox.Text, CultureInfo.InvariantCulture);
-        _snipping.BorderColor = SnippingBorderColorBox.Text;
-        _snipping.AfterScreenshot = (SnippingAfterScreenshot)AfterScreenshotCombo.SelectedIndex;
-        _snipping.CaptureScope = (SnippingCaptureScope)CaptureScopeCombo.SelectedIndex;
+        _viewModel.Snipping.DragThreshold = double.Parse(SnippingDragThresholdBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Snipping.MaskAlpha = double.Parse(SnippingMaskAlphaBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Snipping.BorderColor = SnippingBorderColorBox.Text;
+        _viewModel.Snipping.AfterScreenshot = (SnippingAfterScreenshot)AfterScreenshotCombo.SelectedIndex;
+        _viewModel.Snipping.CaptureScope = (SnippingCaptureScope)CaptureScopeCombo.SelectedIndex;
 
         // Menu
-        _menu.Width = double.Parse(MenuWidthBox.Text, CultureInfo.InvariantCulture);
-        _menu.Height = double.Parse(MenuHeightBox.Text, CultureInfo.InvariantCulture);
-        _menu.Background = MenuBackgroundBox.Text;
-        _menu.CornerRadius = int.Parse(MenuCornerRadiusBox.Text, CultureInfo.InvariantCulture);
-        _menu.ButtonBackground = MenuButtonBgBox.Text;
-        _menu.ButtonHoverBackground = MenuButtonHoverBgBox.Text;
+        _viewModel.Menu.Width = double.Parse(MenuWidthBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Menu.Height = double.Parse(MenuHeightBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Menu.Background = MenuBackgroundBox.Text;
+        _viewModel.Menu.CornerRadius = int.Parse(MenuCornerRadiusBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Menu.ButtonBackground = MenuButtonBgBox.Text;
+        _viewModel.Menu.ButtonHoverBackground = MenuButtonHoverBgBox.Text;
 
         // Pin
-        _pin.BorderColor = PinBorderColorBox.Text;
-        _pin.DefaultOpacity = double.Parse(PinDefaultOpacityBox.Text, CultureInfo.InvariantCulture);
-        _pin.DefaultShowBorder = PinDefaultShowBorderBox.IsChecked == true;
-        _pin.DefaultAnnotationMode = PinDefaultAnnotationModeBox.IsChecked == true;
-        _pin.DefaultTopmost = PinDefaultTopmostBox.IsChecked == true;
-        _pin.DefaultShowShadow = PinDefaultShowShadowBox.IsChecked == true;
+        _viewModel.Pin.BorderColor = PinBorderColorBox.Text;
+        _viewModel.Pin.DefaultOpacity = double.Parse(PinDefaultOpacityBox.Text, CultureInfo.InvariantCulture);
+        _viewModel.Pin.DefaultShowBorder = PinDefaultShowBorderBox.IsChecked == true;
+        _viewModel.Pin.DefaultAnnotationMode = PinDefaultAnnotationModeBox.IsChecked == true;
+        _viewModel.Pin.DefaultTopmost = PinDefaultTopmostBox.IsChecked == true;
+        _viewModel.Pin.DefaultShowShadow = PinDefaultShowShadowBox.IsChecked == true;
 
         // 确保默认分组存在。
-        var defaultGroup = _menuGroups.FirstOrDefault();
+        var defaultGroup = _viewModel.MenuGroups.FirstOrDefault();
         if (defaultGroup is null)
         {
             defaultGroup = new MenuGroup { Id = "default", DisplayName = "默认", Icon = "EFA8" };
-            _menuGroups.Add(defaultGroup);
+            _viewModel.MenuGroups.Add(defaultGroup);
         }
 
         // 保存前把用户在网格中输入/编辑的 Command 字符串迁移到 Commands 目录，
         // 确保每个 ActionItem 都有稳定的 CommandId，同时保留用户在网格中可见的路径/URL。
-        var commandCatalog = Clone(_settingsManager.Settings.Commands);
         var migrationSettings = new Settings
         {
-            MenuGroups = _menuGroups,
-            Commands = commandCatalog,
+            MenuGroups = _viewModel.MenuGroups,
+            Commands = _viewModel.Commands,
         };
         SettingsManager.MigrateActionCommandsIntoCatalog(migrationSettings);
 
-        // 构建全新的 Settings DTO，禁止就地修补原有 live DTO。
-        var newSettings = new Settings
-        {
-            TriggerBindings = new List<TriggerBinding> { _triggerBinding },
-            Preferences = new Preferences
-            {
-                Snipping = _snipping,
-                Menu = _menu,
-                Pin = _pin,
-            },
-            MenuGroups = _menuGroups,
-            Commands = commandCatalog,
-        };
+        // 通过 ViewModel + Builder 构建全新的 Settings DTO，禁止就地修补原有 live DTO。
+        var newSettings = _viewModel.Build(_settingsBuilder);
 
         try
         {
@@ -245,31 +227,6 @@ public partial class SettingsWindow : Window
             SettingsSaved?.Invoke(this, EventArgs.Empty);
             Close();
         });
-    }
-
-    /// <summary>深拷贝 MenuGroups 列表；编辑期与 live DTO 隔离。</summary>
-    private static List<MenuGroup> CloneMenuGroups(List<MenuGroup> source)
-    {
-        return source.Select(g => new MenuGroup
-        {
-            Id = g.Id,
-            DisplayName = g.DisplayName,
-            Icon = g.Icon,
-            Actions = g.Actions.Select(a => new ActionItem
-            {
-                Name = a.Name,
-                CommandId = a.CommandId,
-                Arguments = a.Arguments,
-                Icon = a.Icon,
-            }).ToList(),
-        }).ToList();
-    }
-
-    /// <summary>深拷贝 DTO 子对象；编辑期与 live DTO 隔离。</summary>
-    private static T Clone<T>(T source) where T : class, new()
-    {
-        string json = JsonSerializer.Serialize(source, SettingsManager.JsonOptions);
-        return JsonSerializer.Deserialize<T>(json, SettingsManager.JsonOptions) ?? new T();
     }
 
     /// <summary>校验全部数值与颜色字段；返回 false 时 error 给出提示。</summary>
