@@ -53,8 +53,8 @@ public partial class App : Application
 
         _bootstrapper.MainWindow.OpenSettingsAction = OpenSettings;
 
-        _bootstrapper.HookService.OnWakeupTriggered += (s, ctx) => _bootstrapper.WakeOrchestrator.OnWakeContext(ctx);
-        _bootstrapper.HookService.OnAnyMouseDown += _bootstrapper.MainWindow.OnAnyMouseDown;
+        _bootstrapper.RawInputSource.WakeContextReceived += (s, ctx) => _bootstrapper.WakeOrchestrator.OnWakeContext(ctx);
+        _bootstrapper.RawInputSource.AnyMouseDown += _bootstrapper.MainWindow.OnAnyMouseDown;
 
         // 预热（docs/03 §7.2）：屏幕外 + 透明 + Show 一次，强迫 WPF 完成 XAML 解析、
         // 模板绑定与 GPU 材质编译。窗口已渲染在内存，用户不可见；唤醒仅瞬移+显透明度。
@@ -64,7 +64,7 @@ public partial class App : Application
         _bootstrapper.MainWindow.Opacity = 0;
         _bootstrapper.MainWindow.Show();
 
-        _bootstrapper.HookService.Start();
+        _bootstrapper.RawInputSource.Start();
 
         InitializeTray();
 
@@ -106,7 +106,7 @@ public partial class App : Application
 
     private void OpenSettings()
     {
-        if (_bootstrapper?.HookService is null)
+        if (_bootstrapper is null)
             return;
 
         // 单例：已存在则激活前置，不重复创建（防画圈唤醒菜单后再次点齿轮开出第二个设置页）。
@@ -131,11 +131,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        if (_bootstrapper?.HookService is { } hookService)
+        if (_bootstrapper?.RawInputSource is { } source)
         {
-            hookService.OnAnyMouseDown -= _bootstrapper.MainWindow.OnAnyMouseDown;
-            hookService.Stop();
-            hookService.Dispose();
+            source.AnyMouseDown -= _bootstrapper.MainWindow.OnAnyMouseDown;
+            source.Stop();
+            source.Dispose();
         }
 
         _notifyIcon?.Dispose();
@@ -169,8 +169,8 @@ public partial class App : Application
             try
             {
                 _notifyIcon?.Dispose();
-                _bootstrapper?.HookService.Stop();
-                _bootstrapper?.HookService.Dispose();
+                _bootstrapper?.RawInputSource.Stop();
+                _bootstrapper?.RawInputSource.Dispose();
             }
             catch
             {

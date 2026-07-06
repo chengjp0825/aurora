@@ -222,7 +222,7 @@ public partial class MainWindow : Window, IMenuPresenter
     /// will then command the physical hide. The click itself is not blocked,
     /// so it also reaches the underlying application.
     /// </summary>
-    internal void OnAnyMouseDown(object? sender, POINT e)
+    internal void OnAnyMouseDown(object? sender, DomainPoint e)
     {
         if (!_isAwake)
             return;
@@ -321,10 +321,10 @@ public partial class MainWindow : Window, IMenuPresenter
     }
 
     /// <summary>
-    /// 物理屏幕坐标（POINT，像素）转逻辑坐标（DIP），
+    /// 物理屏幕坐标（Point，像素）转逻辑坐标（DIP），
     /// 供 OnAnyMouseDown 复用，统一 DPI 处理入口。
     /// </summary>
-    private WpfPoint ToLogical(POINT physical)
+    private WpfPoint ToLogical(DomainPoint physical)
     {
         var source = PresentationSource.FromVisual(this);
         if (source?.CompositionTarget is not null)

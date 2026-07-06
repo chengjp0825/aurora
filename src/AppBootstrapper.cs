@@ -11,7 +11,7 @@ namespace MyQuicker;
 /// <summary>
 /// 应用程序最高拓扑装配中心（Composition Root）。
 /// 负责按 CLAUDE.md §2 的启动链路单向构建运行时对象：
-/// Settings → CommandRegistry → ActionExecutor → MainWindow → WakeOrchestrator → GlobalHookService。
+/// Settings → CommandRegistry → ActionExecutor → MainWindow → WakeOrchestrator → RawInputSource。
 /// 设置保存后通过 <see cref="RebuildRuntime"/> 重新走完整工厂链路，禁止就地修补运行时对象。
 /// </summary>
 internal sealed class AppBootstrapper
@@ -22,7 +22,8 @@ internal sealed class AppBootstrapper
     private readonly IScreenGeometry _screenGeometry;
     private readonly ISynchronizationContext _syncContext;
 
-    private GlobalHookService _hookService = null!;
+    private RawInputSource _rawInputSource = null!;
+    private TriggerEvaluator _triggerEvaluator = null!;
     private WakeOrchestrator _wakeOrchestrator = null!;
     private MainWindow _mainWindow = null!;
     private CommandContext _commandContext = null!;
@@ -30,7 +31,8 @@ internal sealed class AppBootstrapper
 
     public SettingsManager SettingsManager => _settingsManager;
     public MainWindow MainWindow => _mainWindow;
-    public GlobalHookService HookService => _hookService;
+    public RawInputSource RawInputSource => _rawInputSource;
+    public TriggerEvaluator TriggerEvaluator => _triggerEvaluator;
     public WakeOrchestrator WakeOrchestrator => _wakeOrchestrator;
 
     public AppBootstrapper()
@@ -100,16 +102,28 @@ internal sealed class AppBootstrapper
             _wakeOrchestrator.UpdateSettings(orchestratorSettings);
         }
 
-        // 6. 全局钩子服务：首次创建，后续只更新触发器列表。
-        if (_hookService is null)
-        {
-            _hookService = new GlobalHookService(_syncContext, _timeProvider);
-        }
+        // 6. 触发器评估器：首次创建，后续只更新触发器列表。
+        _triggerEvaluator ??= new TriggerEvaluator();
 
         var triggers = settings.TriggerBindings
             .Select(b => TriggerFactory.Create(b, _timeProvider))
             .ToList();
+        _triggerEvaluator.UpdateTriggers(triggers);
+
+        // 7. 原始输入源：首次创建，后续只更新拦截策略；TriggerEvaluator 在构造时注入。
         bool interceptWakeupKey = settings.TriggerBindings.All(b => b.InterceptWakeupKey);
-        _hookService.UpdateTriggers(triggers, interceptWakeupKey);
+        var interceptionPolicy = new InputInterceptionPolicy(interceptWakeupKey);
+
+        if (_rawInputSource is null)
+        {
+            _rawInputSource = new RawInputSource(_syncContext, _timeProvider, _triggerEvaluator, interceptionPolicy);
+        }
+        else
+        {
+            // RawInputSource 本身不持有策略实例；拦截行为通过替换事件处理器侧的引用实现。
+            // 为支持动态策略，重建输入源（钩子句柄复用，成本极低）。
+            _rawInputSource.Dispose();
+            _rawInputSource = new RawInputSource(_syncContext, _timeProvider, _triggerEvaluator, interceptionPolicy);
+        }
     }
 }
