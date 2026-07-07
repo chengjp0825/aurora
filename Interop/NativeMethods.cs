@@ -34,6 +34,9 @@ internal static class NativeMethods
     /// <summary>Mouse move message; observed passively for the circle wake-up gesture (never intercepted).</summary>
     public const int WM_MOUSEMOVE = 0x0200;
 
+    /// <summary>DPI changed message. Sent to per-monitor DPI aware windows when moved to a display with different scaling.</summary>
+    public const int WM_DPICHANGED = 0x02E0;
+
     // -----------------------------------------------------------------------
     // 3.1 Hook callback delegate
     // -----------------------------------------------------------------------
@@ -223,6 +226,20 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    /// <summary>
+    /// Confines the cursor to a rectangular area on the screen. Passing an
+    /// empty/zeroed RECT (or IntPtr.Zero) releases the cursor. Used by the
+    /// screenshot overlay to keep the mouse inside the capture monitor.
+    /// </summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ClipCursor(ref RECT lpRect);
+
+    /// <summary>Releases the cursor clip restriction when passed IntPtr.Zero.</summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ClipCursor(IntPtr lpRect);
 
     // -----------------------------------------------------------------------
     // Per-monitor DPI (主副屏缩放不一致时按目标显示器取真实 DPI, docs/02 §5)

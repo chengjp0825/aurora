@@ -126,6 +126,30 @@ public class SettingsManagerMigrationTests : IDisposable
     }
 
     [Fact]
+    public void Load_FirstRun_SeedsDefaultActionsWithIcons()
+    {
+        var manager = new SettingsManager();
+        Settings settings = manager.Load();
+
+        Assert.Single(settings.MenuGroups);
+        var defaultGroup = settings.MenuGroups[0];
+        Assert.Equal(4, defaultGroup.Actions.Count);
+
+        Assert.Contains(defaultGroup.Actions, a =>
+            a.Name == "计算器" && a.CommandId == "cmd:calc" && a.Icon == "E94C");
+        Assert.Contains(defaultGroup.Actions, a =>
+            a.Name == "记事本" && a.CommandId == "cmd:notepad" && a.Icon == "E8A5");
+        Assert.Contains(defaultGroup.Actions, a =>
+            a.Name == "我的网页" && a.CommandId == "cmd:moongazer" && a.Icon == "E71E");
+        Assert.Contains(defaultGroup.Actions, a =>
+            a.Name == "截图" && a.CommandId == "sys:snipping" && a.Icon == "E70F");
+
+        Assert.Contains(settings.Commands, c => c.Id == "cmd:calc" && c.Target == "calc.exe");
+        Assert.Contains(settings.Commands, c => c.Id == "cmd:notepad" && c.Target == "notepad.exe");
+        Assert.Contains(settings.Commands, c => c.Id == "cmd:moongazer" && c.Target == "https://moongazer.cn");
+    }
+
+    [Fact]
     public void Load_CorruptSettingsFile_BackupsAndReturnsDefaults()
     {
         File.WriteAllText(_settingsPath, "this is not json {[");

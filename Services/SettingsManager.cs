@@ -33,7 +33,7 @@ internal sealed class SettingsManager
     /// </summary>
     public Settings Load()
     {
-        string settingsPath = Path.Combine(AppContext.BaseDirectory, SettingsFile);
+        string settingsPath = GetSettingsPath();
 
         if (File.Exists(settingsPath))
         {
@@ -42,10 +42,26 @@ internal sealed class SettingsManager
         }
 
         // 首次启动：默认值 + 迁移旧 appsettings.json，随即落盘 settings.json。
-        Settings settings = new();
-        MigrateFromLegacy(settings);
+        Settings settings = CreateDefaultSettings();
         Settings = settings;
         Save();
+        return Settings;
+    }
+
+    /// <summary>异步加载 settings.json。</summary>
+    public async Task<Settings> LoadAsync()
+    {
+        string settingsPath = GetSettingsPath();
+
+        if (File.Exists(settingsPath))
+        {
+            Settings = await ReadSettingsAsync(settingsPath).ConfigureAwait(false);
+            return Settings;
+        }
+
+        Settings settings = await Task.Run(CreateDefaultSettings).ConfigureAwait(false);
+        Settings = settings;
+        await SaveAsync().ConfigureAwait(false);
         return Settings;
     }
 
@@ -62,14 +78,7 @@ internal sealed class SettingsManager
             throw new ArgumentNullException(nameof(settings));
 
         Settings = Normalize(settings);
-
-        string settingsPath = Path.Combine(AppContext.BaseDirectory, SettingsFile);
-        string tmpPath = settingsPath + ".tmp";
-        string json = JsonSerializer.Serialize(Settings, JsonOptions);
-
-        // 原子写：先写临时文件再 File.Move 覆盖，防断电/崩溃中途截断 settings.json。
-        File.WriteAllText(tmpPath, json);
-        File.Move(tmpPath, settingsPath, overwrite: true);
+        WriteSettingsToFile(JsonSerializer.Serialize(Settings, JsonOptions));
     }
 
     /// <summary>异步保存当前 Settings，避免 UI 线程被文件 I/O 阻塞。</summary>
@@ -85,31 +94,98 @@ internal sealed class SettingsManager
             throw new ArgumentNullException(nameof(settings));
 
         Settings = Normalize(settings);
+        await WriteSettingsToFileAsync(JsonSerializer.Serialize(Settings, JsonOptions)).ConfigureAwait(false);
+    }
 
-        string settingsPath = Path.Combine(AppContext.BaseDirectory, SettingsFile);
+    private static string GetSettingsPath() => Path.Combine(AppContext.BaseDirectory, SettingsFile);
+
+    private static Settings CreateDefaultSettings()
+    {
+        var settings = new Settings();
+        MigrateFromLegacy(settings);
+
+        // 默认触发器：鼠标中键唤醒（首次启动无 settings.json 时注入，否则 TriggerEvaluator 无触发器，唤醒无效）。
+        if (settings.TriggerBindings.Count == 0)
+        {
+            settings.TriggerBindings.Add(new TriggerBinding
+            {
+                Type = TriggerType.Button,
+                WakeupMessage = 0x0207, // NativeMethods.WM_MBUTTONDOWN
+                InterceptWakeupKey = true,
+            });
+        }
+
+        // 首次全新安装且无旧配置时，注入四个常驻默认动作。
+        if (settings.MenuGroups.Count == 0)
+        {
+            SeedDefaultActions(settings);
+        }
+
+        return settings;
+    }
+
+    /// <summary>
+    /// 为首次安装注入四个常驻默认动作：计算器、记事本、我的网页、截图。
+    /// 这些动作被视为应用的“默认快捷项”，自带 logo 并在 CLAUDE.md 中声明。
+    /// </summary>
+    private static void SeedDefaultActions(Settings settings)
+    {
+        var calc = new CommandDefinition
+        {
+            Id = "cmd:calc",
+            DisplayName = "计算器",
+            Type = CommandType.LaunchApplication,
+            Target = "calc.exe"
+        };
+        var notepad = new CommandDefinition
+        {
+            Id = "cmd:notepad",
+            DisplayName = "记事本",
+            Type = CommandType.LaunchApplication,
+            Target = "notepad.exe"
+        };
+        var web = new CommandDefinition
+        {
+            Id = "cmd:moongazer",
+            DisplayName = "我的网页",
+            Type = CommandType.OpenUrl,
+            Target = "https://moongazer.cn"
+        };
+
+        settings.Commands.AddRange(new[] { calc, notepad, web });
+
+        settings.MenuGroups.Add(new MenuGroup
+        {
+            Id = "default",
+            DisplayName = "默认",
+            Icon = "EFA8",
+            Actions = new List<ActionItem>
+            {
+                new() { Name = "计算器", CommandId = calc.Id, Icon = "E94C" },
+                new() { Name = "记事本", CommandId = notepad.Id, Icon = "E8A5" },
+                new() { Name = "我的网页", CommandId = web.Id, Icon = "E71E" },
+                new() { Name = "截图", CommandId = "sys:snipping", Icon = "E70F" },
+            }
+        });
+    }
+
+    /// <summary>原子写 settings.json：先写临时文件再 Move 覆盖，防中途截断。</summary>
+    private static void WriteSettingsToFile(string json)
+    {
+        string settingsPath = GetSettingsPath();
         string tmpPath = settingsPath + ".tmp";
-        string json = JsonSerializer.Serialize(Settings, JsonOptions);
+
+        File.WriteAllText(tmpPath, json);
+        File.Move(tmpPath, settingsPath, overwrite: true);
+    }
+
+    private static async Task WriteSettingsToFileAsync(string json)
+    {
+        string settingsPath = GetSettingsPath();
+        string tmpPath = settingsPath + ".tmp";
 
         await File.WriteAllTextAsync(tmpPath, json).ConfigureAwait(false);
         await Task.Run(() => File.Move(tmpPath, settingsPath, overwrite: true)).ConfigureAwait(false);
-    }
-
-    /// <summary>异步加载 settings.json。</summary>
-    public async Task<Settings> LoadAsync()
-    {
-        string settingsPath = Path.Combine(AppContext.BaseDirectory, SettingsFile);
-
-        if (File.Exists(settingsPath))
-        {
-            Settings = await ReadSettingsAsync(settingsPath).ConfigureAwait(false);
-            return Settings;
-        }
-
-        Settings settings = new();
-        await Task.Run(() => MigrateFromLegacy(settings)).ConfigureAwait(false);
-        Settings = settings;
-        await SaveAsync().ConfigureAwait(false);
-        return Settings;
     }
 
     private static async Task<Settings> ReadSettingsAsync(string path)
@@ -117,16 +193,7 @@ internal sealed class SettingsManager
         try
         {
             string json = await File.ReadAllTextAsync(path).ConfigureAwait(false);
-            using JsonDocument doc = JsonDocument.Parse(json);
-            JsonElement root = doc.RootElement;
-
-            if (root.TryGetProperty("Action", out _))
-            {
-                return MigrateFromOldFormat(root);
-            }
-
-            Settings? settings = JsonSerializer.Deserialize<Settings>(json, JsonOptions);
-            return Normalize(settings ?? new Settings());
+            return ParseSettingsJson(json, path);
         }
         catch (JsonException)
         {
@@ -145,17 +212,7 @@ internal sealed class SettingsManager
         try
         {
             string json = File.ReadAllText(path);
-            using JsonDocument doc = JsonDocument.Parse(json);
-            JsonElement root = doc.RootElement;
-
-            // 旧格式检测：根节点含 Action 属性即为旧 SettingsModel 结构。
-            if (root.TryGetProperty("Action", out _))
-            {
-                return MigrateFromOldFormat(root);
-            }
-
-            Settings? settings = JsonSerializer.Deserialize<Settings>(json, JsonOptions);
-            return Normalize(settings ?? new Settings());
+            return ParseSettingsJson(json, path);
         }
         catch (JsonException)
         {
@@ -166,6 +223,21 @@ internal sealed class SettingsManager
         {
             return new Settings();
         }
+    }
+
+    private static Settings ParseSettingsJson(string json, string path)
+    {
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        // 旧格式检测：根节点含 Action 属性即为旧 SettingsModel 结构。
+        if (root.TryGetProperty("Action", out _))
+        {
+            return MigrateFromOldFormat(root);
+        }
+
+        Settings? settings = JsonSerializer.Deserialize<Settings>(json, JsonOptions);
+        return Normalize(settings ?? new Settings());
     }
 
     /// <summary>确保 Settings 及其子对象无 null，避免后续调用空引用。</summary>

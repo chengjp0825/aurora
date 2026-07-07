@@ -35,13 +35,15 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     public Settings Build(SettingsBuilder builder)
     {
+        // Snipping/Menu/Pin 直接传引用：SettingsBuilder.Build 内部会 Clone 做隔离，
+        // 这里再 Clone 一次是冗余（曾导致 save build 多耗 ~6ms 序列化时间）。
         return builder.Build(
             TriggerBinding,
             CloneMenuGroups(MenuGroups),
             CloneCommands(Commands),
-            Clone(Snipping),
-            Clone(Menu),
-            Clone(Pin));
+            Snipping,
+            Menu,
+            Pin);
     }
 
     private static void Copy(TriggerBinding src, TriggerBinding dst)
@@ -60,6 +62,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         dst.BorderColor = src.BorderColor;
         dst.AfterScreenshot = src.AfterScreenshot;
         dst.CaptureScope = src.CaptureScope;
+        dst.MagnifierPosition = src.MagnifierPosition;
+        dst.ShowMagnifierCoordinates = src.ShowMagnifierCoordinates;
+        dst.ShowMagnifierColor = src.ShowMagnifierColor;
+        dst.MagnifierZoomPreset = src.MagnifierZoomPreset;
     }
 
     private static void Copy(MenuSettings src, MenuSettings dst)

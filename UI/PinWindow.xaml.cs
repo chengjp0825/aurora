@@ -1,6 +1,9 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,6 +11,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using MyQuicker.Domain.DTO;
 using MyQuicker.Interop;
@@ -74,10 +78,126 @@ public partial class PinWindow : Window
 
     // 拖拽绘制：起点 + 当前临时形状（Rectangle / Ellipse / ShapePath）
     private Point _dragStart;
+    private Point _dragStartNatural;
     private Shape? _activeShape;
 
     /// <summary>箭头头部边长（px）：max(8, 粗细×3)。</summary>
     private double ArrowHeadLen => Math.Max(8, _strokeThickness * 3);
+
+    /// <summary>文本批注自然字体大小（物理像素），Arrange 时按当前 scale 转 DIP。</summary>
+    private const double TextFontSizeNatural = 14;
+
+    // ----- 工具栏 Hover 延迟淡出 -----
+    private readonly DispatcherTimer _toolbarHideTimer;
+
+    // ----- DPI / HWND -----
+    private HwndSource? _hwndSource;
+    private bool _suppressSizeChanged;
+
+    // ----- 撤销 / 重做 -----
+    private readonly Stack<IAnnotationEdit> _undoStack = new();
+    private readonly Stack<IAnnotationEdit> _redoStack = new();
+
+    /// <summary>批注在自然图像坐标系中的记录，挂到每个 Shape/TextBlock/TextBox 的 Tag。</summary>
+    private sealed class AnnotationRecord
+    {
+        public EditMode Kind { get; set; }
+        public Rect NaturalRect { get; set; }
+        public Point NaturalStart { get; set; }
+        public Point NaturalEnd { get; set; }
+        public Point NaturalPosition { get; set; }
+        public string? Text { get; set; }
+        public double NaturalStrokeThickness { get; set; }
+        public double NaturalFontSize { get; set; }
+        public Brush? Brush { get; set; }
+    }
+
+    /// <summary>撤销/重做编辑命令。</summary>
+    private interface IAnnotationEdit
+    {
+        void Do();
+        void Undo();
+    }
+
+    private sealed class AddAnnotationEdit : IAnnotationEdit
+    {
+        private readonly Canvas _canvas;
+        private readonly UIElement _element;
+        private readonly int _index;
+
+        public AddAnnotationEdit(Canvas canvas, UIElement element, int index = -1)
+        {
+            _canvas = canvas;
+            _element = element;
+            _index = index;
+        }
+
+        public void Do()
+        {
+            if (_canvas.Children.Contains(_element)) return;
+            if (_index >= 0 && _index <= _canvas.Children.Count)
+                _canvas.Children.Insert(_index, _element);
+            else
+                _canvas.Children.Add(_element);
+        }
+
+        public void Undo()
+        {
+            _canvas.Children.Remove(_element);
+        }
+    }
+
+    private sealed class RemoveAnnotationEdit : IAnnotationEdit
+    {
+        private readonly Canvas _canvas;
+        private readonly UIElement _element;
+        private readonly int _index;
+
+        public RemoveAnnotationEdit(Canvas canvas, UIElement element)
+        {
+            _canvas = canvas;
+            _element = element;
+            _index = _canvas.Children.IndexOf(element);
+        }
+
+        public void Do()
+        {
+            _canvas.Children.Remove(_element);
+        }
+
+        public void Undo()
+        {
+            if (_canvas.Children.Contains(_element)) return;
+            if (_index >= 0 && _index <= _canvas.Children.Count)
+                _canvas.Children.Insert(_index, _element);
+            else
+                _canvas.Children.Add(_element);
+        }
+    }
+
+    private sealed class ClearAnnotationsEdit : IAnnotationEdit
+    {
+        private readonly Canvas _canvas;
+        private readonly List<UIElement> _children;
+
+        public ClearAnnotationsEdit(Canvas canvas, IEnumerable<UIElement> children)
+        {
+            _canvas = canvas;
+            _children = children.ToList();
+        }
+
+        public void Do()
+        {
+            _canvas.Children.Clear();
+        }
+
+        public void Undo()
+        {
+            _canvas.Children.Clear();
+            foreach (var child in _children)
+                _canvas.Children.Add(child);
+        }
+    }
 
     /// <param name="screenX">贴图左上角目标屏幕横坐标（物理像素，来自截图结算）。</param>
     /// <param name="screenY">贴图左上角目标屏幕纵坐标（物理像素，来自截图结算）。</param>
@@ -130,6 +250,16 @@ public partial class PinWindow : Window
         }
         ApplyAnnotationState();
 
+        _toolbarHideTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        _toolbarHideTimer.Tick += (_, _) =>
+        {
+            _toolbarHideTimer.Stop();
+            FadeOutToolbar();
+        };
+
         SourceInitialized += OnSourceInitialized;
     }
 
@@ -141,15 +271,29 @@ public partial class PinWindow : Window
         NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, (int)_screenX, (int)_screenY, 0, 0,
             NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOSIZE);
 
+        _hwndSource = HwndSource.FromHwnd(hwnd);
+        _hwndSource?.AddHook(WndProc);
+
         ReapplyMetrics(hwnd);
-        DpiChanged += OnDpiChanged;
     }
 
-    /// <summary>窗口跨显示器后 DPI 变化：重算尺寸保持 1:1。</summary>
-    private void OnDpiChanged(object sender, System.Windows.DpiChangedEventArgs e)
+    /// <summary>处理原生 WM_DPICHANGED，用系统建议矩形直接定位/定尺寸，避免 WPF 自动缩放冲突。</summary>
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        IntPtr hwnd = new WindowInteropHelper(this).Handle;
-        ReapplyMetrics(hwnd);
+        if (msg == NativeMethods.WM_DPICHANGED)
+        {
+            var rc = Marshal.PtrToStructure<NativeMethods.RECT>(lParam);
+            NativeMethods.SetWindowPos(hwnd, IntPtr.Zero,
+                rc.Left, rc.Top, rc.Right - rc.Left, rc.Bottom - rc.Top,
+                NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+
+            uint newDpi = (ushort)wParam.ToInt32();
+            _scaleX = _scaleY = newDpi / 96.0;
+            ApplyMetricsCore(preservePosition: true);
+
+            handled = true;
+        }
+        return IntPtr.Zero;
     }
 
     /// <summary>用构造时传入的 scale 初算尺寸（HWND 尚未创建）。</summary>
@@ -184,19 +328,39 @@ public partial class PinWindow : Window
         ApplyMetricsCore();
     }
 
-    private void ApplyMetricsCore()
+    private void ApplyMetricsCore(bool preservePosition = false)
     {
         double bx = PinBorder.BorderThickness.Left; // 均匀边框（DIP）
         PinImage.Width = _naturalWidth / _scaleX;
         PinImage.Height = _naturalHeight / _scaleY;
-        // 内容左上角对齐 (screenX, screenY)；边框向外生长，窗口左上角反向偏移 bx。
-        Left = _screenX / _scaleX - bx;
-        Top = _screenY / _scaleY - bx;
+
+        // AnnotationCanvas 与 PinImage 同尺寸、同变换，批注才能随图片 1:1 对齐。
+        AnnotationCanvas.Width = PinImage.Width;
+        AnnotationCanvas.Height = PinImage.Height;
+
+        if (!preservePosition)
+        {
+            // 内容左上角对齐 (screenX, screenY)；边框向外生长，窗口左上角反向偏移 bx。
+            Left = _screenX / _scaleX - bx;
+            Top = _screenY / _scaleY - bx;
+        }
 
         ApplyTransform(); // 旋转/镜像 + ApplyWindowSize（按 _scaleX/Y 重算窗口外接尺寸）
+        ArrangeAnnotations(); // 按新 scale 重映射已有批注
 
         Debug.WriteLine($"DEBUG: PinWindow ReapplyMetrics renderScale=({_scaleX:F3},{_scaleY:F3}) natural={_naturalWidth}x{_naturalHeight} screen=({_screenX},{_screenY}) border={bx}");
     }
+
+    // -----------------------------------------------------------------------
+    // 自然坐标 ↔ DIP 坐标转换
+    // -----------------------------------------------------------------------
+
+    private Point ToNaturalPoint(Point canvas) => new(canvas.X * _scaleX, canvas.Y * _scaleY);
+    private Point ToCanvasPoint(Point natural) => new(natural.X / _scaleX, natural.Y / _scaleY);
+    private double ToNaturalLengthX(double len) => len * _scaleX;
+    private double ToNaturalLengthY(double len) => len * _scaleY;
+    private double ToCanvasLengthX(double len) => len / _scaleX;
+    private double ToCanvasLengthY(double len) => len / _scaleY;
 
     // -----------------------------------------------------------------------
     // 拖拽与双击关闭
@@ -205,11 +369,17 @@ public partial class PinWindow : Window
     /// <summary>
     /// 左键按下：双击关闭，否则交给 WPF 原生 <see cref="Window.DragMove"/>。
     /// 批注模式（Rect/Circle/Arrow/Text）下 Canvas 接管命中并 e.Handled，本回调不触发。
+    /// 批注模式开启但为指针工具时，双击不关闭窗口。
     /// </summary>
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount >= 2)
         {
+            if (_annotationModeEnabled)
+            {
+                e.Handled = true;
+                return;
+            }
             Close();
             return;
         }
@@ -218,17 +388,57 @@ public partial class PinWindow : Window
     }
 
     // -----------------------------------------------------------------------
+    // 窗口手动缩放：保持宽高比
+    // -----------------------------------------------------------------------
+
+    /// <summary>用户拖拽窗口边框时，根据客户区大小反推缩放并保持宽高比。</summary>
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_suppressSizeChanged || (!e.WidthChanged && !e.HeightChanged)) return;
+
+        double border = PinBorder.BorderThickness.Left;
+        double contentW = Math.Max(1, Width - 2 * border);
+        double contentH = Math.Max(1, Height - 2 * border);
+
+        bool swapped = (_rotationStep % 2) == 1;
+        double natW = swapped ? _naturalHeight : _naturalWidth;
+        double natH = swapped ? _naturalWidth : _naturalHeight;
+
+        // 保持宽高比：按能填满客户区的一边计算新缩放。
+        double scaleFromW = natW / contentW;
+        double scaleFromH = natH / contentH;
+        double newScale = Math.Max(scaleFromW, scaleFromH);
+
+        if (newScale > 0)
+        {
+            _scaleX = _scaleY = newScale;
+            _suppressSizeChanged = true;
+            try
+            {
+                ApplyMetricsCore(preservePosition: true);
+            }
+            finally
+            {
+                _suppressSizeChanged = false;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // 工具栏 Hover 淡入 / 淡出（仅批注模式开启时，docs/03 §6）
     // -----------------------------------------------------------------------
 
     private void Window_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (_annotationModeEnabled) FadeInToolbar();
+        if (!_annotationModeEnabled) return;
+        _toolbarHideTimer.Stop();
+        FadeInToolbar();
     }
 
     private void Window_MouseLeave(object sender, MouseEventArgs e)
     {
-        if (_annotationModeEnabled) FadeOutToolbar();
+        if (!_annotationModeEnabled) return;
+        _toolbarHideTimer.Start();
     }
 
     private void FadeInToolbar()
@@ -240,9 +450,13 @@ public partial class PinWindow : Window
 
     private void FadeOutToolbar()
     {
-        AnnotationToolbar.IsHitTestVisible = false;
-        AnnotationToolbar.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
+        var anim = new DoubleAnimation(0, TimeSpan.FromMilliseconds(150));
+        anim.Completed += (_, _) =>
+        {
+            if (AnnotationToolbar.Opacity <= 0.01)
+                AnnotationToolbar.IsHitTestVisible = false;
+        };
+        AnnotationToolbar.BeginAnimation(OpacityProperty, anim);
     }
 
     private void ForceHideToolbar()
@@ -311,10 +525,23 @@ public partial class PinWindow : Window
         }
     }
 
-    /// <summary>清除 Canvas 上所有批注。</summary>
+    /// <summary>清除 Canvas 上所有批注（需确认）。</summary>
     private void ClearAnnotations_Click(object sender, RoutedEventArgs e)
     {
-        AnnotationCanvas.Children.Clear();
+        if (AnnotationCanvas.Children.Count == 0) return;
+
+        var result = System.Windows.MessageBox.Show(
+            "确定要清除所有批注吗？此操作不可恢复。",
+            "清除批注",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            var children = AnnotationCanvas.Children.Cast<UIElement>().ToList();
+            ExecuteEdit(new ClearAnnotationsEdit(AnnotationCanvas, children));
+            AnnotationCanvas.Children.Clear();
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -324,9 +551,11 @@ public partial class PinWindow : Window
     /// <summary>Canvas 左键按下：Rect/Circle 建临时 Rectangle/Ellipse，Arrow 建临时 Path，Text 生成 TextBox。</summary>
     private void AnnotationCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        _dragStart = e.GetPosition(AnnotationCanvas);
+        _dragStartNatural = ToNaturalPoint(_dragStart);
+
         if (_editMode == EditMode.Rect || _editMode == EditMode.Circle)
         {
-            _dragStart = e.GetPosition(AnnotationCanvas);
             Shape sh = _editMode == EditMode.Rect
                 ? new Rectangle { Stroke = _currentBrush, StrokeThickness = _strokeThickness, Fill = Brushes.Transparent, Stretch = Stretch.Fill }
                 : new Ellipse { Stroke = _currentBrush, StrokeThickness = _strokeThickness, Fill = Brushes.Transparent, Stretch = Stretch.Fill };
@@ -339,7 +568,6 @@ public partial class PinWindow : Window
         }
         else if (_editMode == EditMode.Arrow)
         {
-            _dragStart = e.GetPosition(AnnotationCanvas);
             var p = new ShapePath
             {
                 Stroke = _currentBrush,
@@ -355,7 +583,7 @@ public partial class PinWindow : Window
         }
         else if (_editMode == EditMode.Text)
         {
-            SpawnTextEditor(e.GetPosition(AnnotationCanvas));
+            SpawnTextEditor(_dragStart);
             e.Handled = true;
         }
     }
@@ -389,63 +617,319 @@ public partial class PinWindow : Window
         }
     }
 
-    /// <summary>松开定型：过小（&lt;3px）移除。</summary>
+    /// <summary>松开定型：过小（&lt;3px）移除；否则记录自然坐标并入 undo 栈。</summary>
     private void AnnotationCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_activeShape is null) return;
         AnnotationCanvas.ReleaseMouseCapture();
 
+        var endPt = e.GetPosition(AnnotationCanvas);
         bool tooSmall = _editMode == EditMode.Arrow
-            ? (e.GetPosition(AnnotationCanvas) - _dragStart).Length < 3
+            ? (endPt - _dragStart).Length < 3
             : _activeShape.Width < 3 || _activeShape.Height < 3;
+
         if (tooSmall)
+        {
             AnnotationCanvas.Children.Remove(_activeShape);
+        }
+        else
+        {
+            var record = CreateRecordForActiveShape(endPt);
+            _activeShape.Tag = record;
+            ExecuteEdit(new AddAnnotationEdit(AnnotationCanvas, _activeShape));
+        }
+
         _activeShape = null;
         e.Handled = true;
     }
 
-    /// <summary>Text 模式：在点击处生成无边框可编辑 TextBox，失焦转固定 TextBlock。</summary>
+    /// <summary>把当前临时形状转为自然坐标记录。</summary>
+    private AnnotationRecord CreateRecordForActiveShape(Point endPt)
+    {
+        var record = new AnnotationRecord
+        {
+            Kind = _editMode,
+            NaturalStrokeThickness = ToNaturalLengthX(_strokeThickness),
+            Brush = _currentBrush
+        };
+
+        switch (_editMode)
+        {
+            case EditMode.Rect:
+                {
+                    double x = Math.Min(_dragStartNatural.X, endPt.X * _scaleX);
+                    double y = Math.Min(_dragStartNatural.Y, endPt.Y * _scaleY);
+                    double w = Math.Abs(endPt.X * _scaleX - _dragStartNatural.X);
+                    double h = Math.Abs(endPt.Y * _scaleY - _dragStartNatural.Y);
+                    record.NaturalRect = new Rect(x, y, w, h);
+                    break;
+                }
+            case EditMode.Circle:
+                {
+                    double dx = (endPt.X - _dragStart.X) * _scaleX;
+                    double dy = (endPt.Y - _dragStart.Y) * _scaleY;
+                    double size = Math.Min(Math.Abs(dx), Math.Abs(dy));
+                    double x = dx >= 0 ? _dragStartNatural.X : _dragStartNatural.X - size;
+                    double y = dy >= 0 ? _dragStartNatural.Y : _dragStartNatural.Y - size;
+                    record.NaturalRect = new Rect(x, y, size, size);
+                    break;
+                }
+            case EditMode.Arrow:
+                {
+                    record.NaturalStart = _dragStartNatural;
+                    record.NaturalEnd = ToNaturalPoint(endPt);
+                    break;
+                }
+        }
+
+        return record;
+    }
+
+    /// <summary>按当前 scale 与变换重排所有已有批注。</summary>
+    private void ArrangeAnnotations()
+    {
+        foreach (UIElement child in AnnotationCanvas.Children)
+        {
+            if (child is not FrameworkElement fe || fe.Tag is not AnnotationRecord rec) continue;
+
+            switch (rec.Kind)
+            {
+                case EditMode.Rect:
+                case EditMode.Circle:
+                    if (child is Shape sh)
+                    {
+                        var r = rec.NaturalRect;
+                        Canvas.SetLeft(sh, r.X / _scaleX);
+                        Canvas.SetTop(sh, r.Y / _scaleY);
+                        sh.Width = r.Width / _scaleX;
+                        sh.Height = r.Height / _scaleY;
+                        sh.StrokeThickness = rec.NaturalStrokeThickness / Math.Max(_scaleX, _scaleY);
+                    }
+                    break;
+
+                case EditMode.Arrow:
+                    if (child is ShapePath p)
+                    {
+                        var start = ToCanvasPoint(rec.NaturalStart);
+                        var end = ToCanvasPoint(rec.NaturalEnd);
+                        double headLen = Math.Max(8, rec.NaturalStrokeThickness * 3) / Math.Max(_scaleX, _scaleY);
+                        p.Data = ArrowGeometry(start, end, headLen);
+                        p.StrokeThickness = rec.NaturalStrokeThickness / Math.Max(_scaleX, _scaleY);
+                    }
+                    break;
+
+                case EditMode.Text:
+                    double fontSize = rec.NaturalFontSize / ((_scaleX + _scaleY) / 2);
+                    var pt = ToCanvasPoint(rec.NaturalPosition);
+                    if (child is TextBlock blk)
+                    {
+                        Canvas.SetLeft(blk, pt.X);
+                        Canvas.SetTop(blk, pt.Y);
+                        blk.FontSize = fontSize;
+                    }
+                    else if (child is TextBox tb)
+                    {
+                        Canvas.SetLeft(tb, pt.X);
+                        Canvas.SetTop(tb, pt.Y);
+                        tb.FontSize = fontSize;
+                    }
+                    break;
+            }
+        }
+    }
+
+    /// <summary>撤销 / 重做快捷键。</summary>
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Z)
+        {
+            Undo();
+            e.Handled = true;
+        }
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Y)
+        {
+            Redo();
+            e.Handled = true;
+        }
+    }
+
+    private void ExecuteEdit(IAnnotationEdit edit)
+    {
+        edit.Do();
+        _undoStack.Push(edit);
+        _redoStack.Clear();
+    }
+
+    private void Undo()
+    {
+        if (_undoStack.Count == 0) return;
+        var edit = _undoStack.Pop();
+        edit.Undo();
+        _redoStack.Push(edit);
+    }
+
+    private void Redo()
+    {
+        if (_redoStack.Count == 0) return;
+        var edit = _redoStack.Pop();
+        edit.Do();
+        _undoStack.Push(edit);
+    }
+
+    // -----------------------------------------------------------------------
+    // 文本批注
+    // -----------------------------------------------------------------------
+
+    /// <summary>Text 模式：在点击处生成无边框可编辑 TextBox，失焦转固定 TextBlock；Enter 提交，Esc 取消。</summary>
     private void SpawnTextEditor(Point pt)
     {
+        var ptNatural = ToNaturalPoint(pt);
         var tb = new TextBox
         {
             Foreground = _currentBrush,
-            Background = Brushes.Transparent,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(178, 0, 0, 0)),
             BorderThickness = new Thickness(0),
             CaretBrush = _currentBrush,
-            FontSize = 14,
+            FontSize = TextFontSizeNatural / ((_scaleX + _scaleY) / 2),
             MinWidth = 30,
-            Padding = new Thickness(2, 0, 2, 0)
+            Padding = new Thickness(0) // 显式消除 Padding 带来的 1-2px 位移
         };
+
         Canvas.SetLeft(tb, pt.X);
         Canvas.SetTop(tb, pt.Y);
         AnnotationCanvas.Children.Add(tb);
-        tb.LostFocus += (s, _) => CommitTextEditor(tb);
+
+        tb.PreviewKeyDown += TextBox_PreviewKeyDown;
+        tb.LostFocus += (s, _) => CommitTextEditor((TextBox)s!, null);
         tb.Focus();
         Keyboard.Focus(tb);
+
+        var record = new AnnotationRecord
+        {
+            Kind = EditMode.Text,
+            NaturalPosition = ptNatural,
+            Text = string.Empty,
+            NaturalFontSize = TextFontSizeNatural,
+            Brush = _currentBrush
+        };
+        tb.Tag = record;
     }
 
-    /// <summary>TextBox 失焦：非空则转为同位置同样式的 TextBlock，空则移除。</summary>
-    private void CommitTextEditor(TextBox tb)
+    private void TextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (sender is not TextBox tb) return;
+
+        if (e.Key == Key.Enter)
+        {
+            MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            var record = tb.Tag as AnnotationRecord;
+            tb.Text = record?.Text ?? string.Empty;
+            MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>TextBox 失焦：非空则转为同位置同样式的 TextBlock；空则移除。双击 TextBlock 可回编。</summary>
+    private void CommitTextEditor(TextBox tb, TextBlock? replace)
+    {
+        var record = tb.Tag as AnnotationRecord;
         if (string.IsNullOrWhiteSpace(tb.Text))
         {
+            if (replace != null)
+            {
+                int replaceIdx = AnnotationCanvas.Children.IndexOf(replace);
+                if (replaceIdx >= 0)
+                    AnnotationCanvas.Children.RemoveAt(replaceIdx);
+            }
             AnnotationCanvas.Children.Remove(tb);
             return;
         }
+
+        var bg = new SolidColorBrush(System.Windows.Media.Color.FromArgb(178, 0, 0, 0));
         var blk = new TextBlock
         {
             Text = tb.Text,
             Foreground = tb.Foreground,
+            Background = bg,
             FontSize = tb.FontSize,
             FontFamily = tb.FontFamily,
-            Padding = tb.Padding
+            Padding = new Thickness(0), // 与 TextBox 保持一致，避免视觉跳动
+            TextWrapping = TextWrapping.NoWrap
         };
+
+        blk.MouseLeftButtonDown += (s, e) =>
+        {
+            if (e.ClickCount == 2 && _annotationModeEnabled)
+            {
+                EnterTextEdit((TextBlock)s!);
+                e.Handled = true;
+            }
+        };
+
+        if (record != null)
+        {
+            record.Text = tb.Text;
+            blk.Tag = record;
+        }
+
+        // 继承 TextBox 的 Canvas 位置，避免文本跳回左上角。
         Canvas.SetLeft(blk, Canvas.GetLeft(tb));
         Canvas.SetTop(blk, Canvas.GetTop(tb));
-        int idx = AnnotationCanvas.Children.IndexOf(tb);
+
+        int idx;
+        if (replace != null)
+        {
+            idx = AnnotationCanvas.Children.IndexOf(replace);
+            AnnotationCanvas.Children.Remove(replace);
+        }
+        else
+        {
+            idx = AnnotationCanvas.Children.IndexOf(tb);
+        }
+        AnnotationCanvas.Children.Remove(tb);
+
+        if (idx >= 0 && idx <= AnnotationCanvas.Children.Count)
+            AnnotationCanvas.Children.Insert(idx, blk);
+        else
+            AnnotationCanvas.Children.Add(blk);
+    }
+
+    private void EnterTextEdit(TextBlock blk)
+    {
+        var record = blk.Tag as AnnotationRecord;
+        var bg = new SolidColorBrush(System.Windows.Media.Color.FromArgb(178, 0, 0, 0));
+        var tb = new TextBox
+        {
+            Text = record?.Text ?? blk.Text,
+            Foreground = blk.Foreground,
+            Background = bg,
+            FontSize = blk.FontSize,
+            FontFamily = blk.FontFamily,
+            Padding = new Thickness(0),
+            BorderThickness = new Thickness(0),
+            CaretBrush = blk.Foreground,
+            MinWidth = 30
+        };
+
+        tb.PreviewKeyDown += TextBox_PreviewKeyDown;
+        tb.LostFocus += (s, _) => CommitTextEditor((TextBox)s!, blk);
+
+        // 继承 TextBlock 的 Canvas 位置，避免编辑时文本跳回左上角。
+        Canvas.SetLeft(tb, Canvas.GetLeft(blk));
+        Canvas.SetTop(tb, Canvas.GetTop(blk));
+
+        int idx = AnnotationCanvas.Children.IndexOf(blk);
         AnnotationCanvas.Children.RemoveAt(idx);
-        AnnotationCanvas.Children.Insert(idx, blk);
+        AnnotationCanvas.Children.Insert(idx, tb);
+        tb.Focus();
+        Keyboard.Focus(tb);
+
+        if (record != null)
+            tb.Tag = record;
     }
 
     /// <summary>箭头几何：主线 + 末端 V 形箭头（箭头长 = headLen，张角 60°）。</summary>
@@ -496,13 +980,28 @@ public partial class PinWindow : Window
     private void ApplyBorder(double thickness)
     {
         PinBorder.BorderThickness = new Thickness(thickness);
-        ReapplyMetrics();
+        var hwnd = new WindowInteropHelper(this).Handle;
+        // suppress SizeChanged：防止 ApplyWindowSize 设 Width 触发的 SizeChanged 反推 _scaleX
+        // 并用 preservePosition=true 的 ApplyMetricsCore 覆盖刚算好的 Left/Top（开关边界时贴图错位）。
+        _suppressSizeChanged = true;
+        try
+        {
+            ReapplyMetrics(hwnd);
+            UpdateLayout();
+        }
+        finally { _suppressSizeChanged = false; }
     }
 
-    /// <summary>重置大小：恢复 1:1 像素比例，窗口尺寸回归当前旋转方向的外接矩形。</summary>
+    /// <summary>重置大小：恢复当前 DPI 下的 1:1 像素比例，以窗口中心为锚点。</summary>
     private void ResetSize_Click(object sender, RoutedEventArgs e)
     {
-        ApplyTransform();
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var center = new Point(Left + Width / 2, Top + Height / 2);
+
+        ReapplyMetrics(hwnd);
+
+        Left = center.X - Width / 2;
+        Top = center.Y - Height / 2;
     }
 
     /// <summary>不透明度子菜单：0.3 / 0.5 / 0.8 / 1.0。点击设 Opacity 并同步勾选。</summary>
@@ -577,7 +1076,7 @@ public partial class PinWindow : Window
     /// <summary>
     /// 把 ContentRoot（图片 + 批注）光栅化为 BitmapSource：
     /// 1. 摘阴影——渲染前 PinImage.Effect=null + InvalidateVisual，渲染后恢复，防阴影烤入；
-    /// 2. DPI 缩放——按系统 DPI 放大像素维度，避免高 DPI 屏糊；
+    /// 2. DPI 缩放——按窗口当前 DPI 放大像素维度，避免高 DPI 屏糊；
     /// 3. 渲染根 ContentRoot 天然排除 AnnotationToolbar（在其外）与 PinBorder。
     /// </summary>
     private BitmapSource RenderComposite()
@@ -589,12 +1088,13 @@ public partial class PinWindow : Window
             // 强制 flush 阴影摘除，避免 Effect=null 未即时生效把阴影烤入位图
             PinImage.InvalidateVisual();
             ContentRoot.UpdateLayout();
-            var dpi = VisualTreeHelper.GetDpi(ContentRoot);
-            int w = (int)(ContentRoot.ActualWidth * dpi.DpiScaleX);
-            int h = (int)(ContentRoot.ActualHeight * dpi.DpiScaleY);
-            if (w <= 0 || h <= 0) return _source; // 兜底：尺寸异常回退原图
 
-            var rtb = new RenderTargetBitmap(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+            double dpiX = _scaleX * 96.0;
+            double dpiY = _scaleY * 96.0;
+            int w = Math.Max(1, (int)(ContentRoot.ActualWidth * _scaleX));
+            int h = Math.Max(1, (int)(ContentRoot.ActualHeight * _scaleY));
+
+            var rtb = new RenderTargetBitmap(w, h, dpiX, dpiY, PixelFormats.Pbgra32);
             rtb.Render(ContentRoot);
             var result = (BitmapSource)rtb;
             result.Freeze();
@@ -689,12 +1189,20 @@ public partial class PinWindow : Window
         PinBorder.BorderBrush = null;
         AnnotationCanvas.Children.Clear();
         _currentBrush = null!;
+        _activeShape = null;
+        _undoStack.Clear();
+        _redoStack.Clear();
 
         if (AnnotationCanvas.IsMouseCaptured)
             AnnotationCanvas.ReleaseMouseCapture();
 
+        if (_hwndSource != null)
+        {
+            _hwndSource.RemoveHook(WndProc);
+            _hwndSource = null;
+        }
+
         SourceInitialized -= OnSourceInitialized;
-        DpiChanged -= OnDpiChanged;
 
         base.OnClosed(e);
     }

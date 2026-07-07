@@ -68,6 +68,26 @@ public class LaunchApplicationCommandTests
     }
 
     [Fact]
+    public void Execute_WithResolvablePathExecutableName_ResolvesAndLaunches()
+    {
+        var launcher = new FakeProcessLauncher();
+        launcher.RegisterResolvedPath("notepad.exe", "C:\\Windows\\notepad.exe");
+        var ctx = CreateContext(launcher);
+        var parameters = new Dictionary<string, string>
+        {
+            ["target"] = "notepad.exe",
+            ["arguments"] = "test.txt"
+        };
+        var command = new LaunchApplicationCommand();
+
+        ActionResult result = command.Execute(ctx, parameters);
+
+        Assert.Equal(ActionOutcomeKind.StartedProcess, result.Kind);
+        Assert.Single(launcher.Launched);
+        Assert.Equal(("C:\\Windows\\notepad.exe", "test.txt"), launcher.Launched[0]);
+    }
+
+    [Fact]
     public void Execute_WithShellMetacharactersInPath_ThrowsSecurityException()
     {
         var ctx = CreateContext(new FakeProcessLauncher());

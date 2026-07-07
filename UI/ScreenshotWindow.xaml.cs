@@ -561,19 +561,6 @@ public partial class ScreenshotWindow : Window
         MagnifierColorText.Text = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
 
         PositionLoupe(mouseDip);
-
-        // 诊断日志：输出放大镜与像素块的运行时尺寸。
-        double dbgBlockWidthPhys = LoupeDiameter / (double)_loupeSourceSize;
-        double dbgBlockHeightPhys = LoupeDiameter / (double)_loupeSourceSize;
-        double dbgBlockWidthDip = dbgBlockWidthPhys / _scaleX;
-        double dbgBlockHeightDip = dbgBlockHeightPhys / _scaleY;
-        Debug.WriteLine($"DEBUG: Loupe=({MagnifierLoupe.Width:F3}x{MagnifierLoupe.Height:F3}) " +
-            $"Actual=({MagnifierLoupe.ActualWidth:F3}x{MagnifierLoupe.ActualHeight:F3}) " +
-            $"BlockDip=({dbgBlockWidthDip:F3}x{dbgBlockHeightDip:F3}) " +
-            $"VertW={VerticalPixelIndicator.Width:F3}({VerticalPixelIndicator.ActualWidth:F3}) " +
-            $"HorzH={HorizontalPixelIndicator.Height:F3}({HorizontalPixelIndicator.ActualHeight:F3}) " +
-            $"Center=({CenterPixelHighlight.Width:F3}x{CenterPixelHighlight.Height:F3}) " +
-            $"CenterActual=({CenterPixelHighlight.ActualWidth:F3}x{CenterPixelHighlight.ActualHeight:F3})");
     }
 
     /// <summary>

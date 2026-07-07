@@ -60,6 +60,10 @@ public partial class SettingsWindow : Window
         SnippingBorderColorBox.Text = _viewModel.Snipping.BorderColor;
         AfterScreenshotCombo.SelectedIndex = (int)_viewModel.Snipping.AfterScreenshot;
         CaptureScopeCombo.SelectedIndex = (int)_viewModel.Snipping.CaptureScope;
+        MagnifierPositionCombo.SelectedIndex = (int)_viewModel.Snipping.MagnifierPosition;
+        ShowMagnifierCoordinatesBox.IsChecked = _viewModel.Snipping.ShowMagnifierCoordinates;
+        ShowMagnifierColorBox.IsChecked = _viewModel.Snipping.ShowMagnifierColor;
+        MagnifierZoomPresetCombo.SelectedIndex = (int)_viewModel.Snipping.MagnifierZoomPreset;
 
         // Menu
         MenuWidthBox.Text = _viewModel.Menu.Width.ToString(CultureInfo.InvariantCulture);
@@ -178,6 +182,10 @@ public partial class SettingsWindow : Window
         _viewModel.Snipping.BorderColor = SnippingBorderColorBox.Text;
         _viewModel.Snipping.AfterScreenshot = (SnippingAfterScreenshot)AfterScreenshotCombo.SelectedIndex;
         _viewModel.Snipping.CaptureScope = (SnippingCaptureScope)CaptureScopeCombo.SelectedIndex;
+        _viewModel.Snipping.MagnifierPosition = (MagnifierPosition)MagnifierPositionCombo.SelectedIndex;
+        _viewModel.Snipping.ShowMagnifierCoordinates = ShowMagnifierCoordinatesBox.IsChecked == true;
+        _viewModel.Snipping.ShowMagnifierColor = ShowMagnifierColorBox.IsChecked == true;
+        _viewModel.Snipping.MagnifierZoomPreset = (MagnifierZoomPreset)MagnifierZoomPresetCombo.SelectedIndex;
 
         // Menu
         _viewModel.Menu.Width = double.Parse(MenuWidthBox.Text, CultureInfo.InvariantCulture);
@@ -214,7 +222,8 @@ public partial class SettingsWindow : Window
         SettingsManager.MigrateActionCommandsIntoCatalog(migrationSettings);
 
         // 通过 ViewModel + Builder 构建全新的 Settings DTO，禁止就地修补原有 live DTO。
-        var newSettings = _viewModel.Build(_settingsBuilder);
+        // build 含 JsonSerializer Clone（序列化），放到后台线程避免阻塞 UI。
+        var newSettings = await Task.Run(() => _viewModel.Build(_settingsBuilder)).ConfigureAwait(false);
 
         try
         {

@@ -246,6 +246,69 @@
                             </ComboBox>
                         </Grid>
 
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="放大镜位置" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="像素放大镜相对鼠标的初始方向" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" x:Name="MagnifierPositionCombo"
+                                      Style="{StaticResource FlatComboBox}"
+                                      Width="200" HorizontalAlignment="Right" SelectedIndex="0">
+                                <ComboBoxItem Content="右下" />
+                                <ComboBoxItem Content="左下" />
+                                <ComboBoxItem Content="右上" />
+                                <ComboBoxItem Content="左上" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="显示放大镜坐标" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="在放大镜中显示当前像素坐标" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" x:Name="ShowMagnifierCoordinatesBox"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="显示放大镜颜色" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="在放大镜中显示 RGB/Hex 颜色信息" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" x:Name="ShowMagnifierColorBox"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldTitle}" Text="放大镜倍率" />
+                                <TextBlock Style="{StaticResource FieldDesc}" Text="像素在放大镜中的显示大小" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" x:Name="MagnifierZoomPresetCombo"
+                                      Style="{StaticResource FlatComboBox}"
+                                      Width="200" HorizontalAlignment="Right" SelectedIndex="1">
+                                <ComboBoxItem Content="偏小" />
+                                <ComboBoxItem Content="适中" />
+                                <ComboBoxItem Content="偏大" />
+                            </ComboBox>
+                        </Grid>
+
                         <!-- 贴图分组 -->
                         <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,18,0,14" />
                         <TextBlock Text="贴图" Style="{StaticResource SectionHeader}" />

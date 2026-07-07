@@ -13,7 +13,9 @@
         RenderOptions.BitmapScalingMode="HighQuality"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseEnter="Window_MouseEnter"
-        MouseLeave="Window_MouseLeave">
+        MouseLeave="Window_MouseLeave"
+        SizeChanged="Window_SizeChanged"
+        PreviewKeyDown="Window_PreviewKeyDown">
 
     <!--
         三层结构：
@@ -56,6 +58,10 @@
             <Canvas x:Name="AnnotationCanvas"
                     Background="Transparent"
                     IsHitTestVisible="False"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    RenderTransformOrigin="0.5,0.5"
+                    RenderTransform="{Binding RenderTransform, ElementName=PinImage}"
                     PreviewMouseLeftButtonDown="AnnotationCanvas_MouseLeftButtonDown"
                     PreviewMouseMove="AnnotationCanvas_MouseMove"
                     PreviewMouseLeftButtonUp="AnnotationCanvas_MouseLeftButtonUp" />

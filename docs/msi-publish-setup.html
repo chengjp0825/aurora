@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyQuicker MSI 安装包 + 自动更新配置</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #fff; --border: #e3e6ea; --text: #1f2328;
+    --muted: #6b7280; --primary: #2563eb; --primary-bg: #eff6ff;
+    --green: #16a34a; --green-bg: #dcfce7; --amber: #d97706; --amber-bg: #fef3c7;
+    --red: #dc2626; --red-bg: #fee2e2; --code-bg: #1e1e2e; --code-text: #e0e0e0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: linear-gradient(135deg, #0f766e, #2563eb); color: #fff; padding: 28px 24px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  header h1 { margin: 0 0 6px; font-size: 22px; }
+  header p { margin: 0; opacity: 0.92; font-size: 13px; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 24px; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 72px; z-index: 9; }
+  nav a { text-decoration: none; color: var(--muted); font-size: 12px; padding: 4px 9px; border-radius: 4px; white-space: nowrap; }
+  nav a:hover { background: var(--primary-bg); color: var(--primary); }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 22px; margin-bottom: 18px; }
+  h2 { font-size: 19px; margin: 0 0 14px; padding-bottom: 7px; border-bottom: 2px solid var(--primary); color: #0f766e; }
+  h3 { font-size: 15px; margin: 18px 0 9px; color: #1e40af; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  code { background: #eef2f7; color: #be185d; padding: 1px 5px; border-radius: 3px; font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
+  pre { background: var(--code-bg); color: var(--code-text); padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; line-height: 1.5; }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 4px; }
+  .rec { background: var(--green-bg); color: var(--green); }
+  .warn { background: var(--amber-bg); color: var(--amber); }
+  .bad { background: var(--red-bg); color: var(--red); }
+  .info { background: var(--primary-bg); color: var(--primary); }
+  .callout { border-left: 4px solid var(--primary); background: var(--primary-bg); padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .callout.warn { border-color: var(--amber); background: var(--amber-bg); }
+  .callout.bad { border-color: var(--red); background: var(--red-bg); }
+  .callout.good { border-color: var(--green); background: var(--green-bg); }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding: 4px 0 4px 26px; position: relative; font-size: 13px; }
+  .checklist li::before { content: "☐"; position: absolute; left: 4px; color: var(--muted); }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; font-size: 13px; }
+  .flow span { background: var(--primary-bg); color: var(--primary); padding: 4px 10px; border-radius: 4px; }
+  .flow .arrow { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>MyQuicker MSI 安装包 + 自动更新配置</h1>
+  <p>WiX Toolset v4 生成 PerUser MSI（无需 UAC）+ 应用内检查 GitHub Releases 静默升级</p>
+</header>
+<nav>
+  <a href="#s1">前置</a>
+  <a href="#s2">MSI 配置</a>
+  <a href="#s3">构建脚本</a>
+  <a href="#s4">自动更新</a>
+  <a href="#s5">CI</a>
+  <a href="#s6">版本号</a>
+  <a href="#s7">升级流程</a>
+  <a href="#s8">测试清单</a>
+  <a href="#s9">增强</a>
+</nav>
+<main>
+
+<section id="s1">
+<h2>1. 前置：WiX Toolset v4</h2>
+<p>WiX v4 以 dotnet tool 分发，本地与 CI 一致：</p>
+<pre><code>dotnet tool install -g wix
+wix --version</code></pre>
+<p>文档：<code>https://wixtoolset.org/docs/v4/</code></p>
+</section>
+
+<section id="s2">
+<h2>2. MSI 配置：installer/MyQuicker.wxs</h2>
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"&gt;
+
+  &lt;Package
+    Name="MyQuicker"
+    Language="2052" Codepage="936"
+    Version="$(var.Version)"
+    Manufacturer="your-name"
+    UpgradeCode="8F2C4D6E-1234-5678-9ABC-DEF012345678"
+    InstallScope="perUser" InstallPrivileges="limited"&gt;
+
+    &lt;MajorUpgrade AllowSameVersion="yes"
+      DowngradeErrorMessage="已安装更新版本，无法降级。" /&gt;
+
+    &lt;Media Id="1" Cabinet="MyQuicker.cab" EmbedCab="yes" /&gt;
+
+    &lt;Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" /&gt;
+    &lt;ui:WixUI Id="WixUI_InstallDir" /&gt;
+    &lt;ui:WixUIRef Id="WixUI_ErrorProgressText" /&gt;
+
+    &lt;Feature Id="Complete" Title="MyQuicker" Level="1"&gt;
+      &lt;ComponentGroupRef Id="ProductComponents" /&gt;
+    &lt;/Feature&gt;
+  &lt;/Package&gt;
+
+  &lt;Fragment&gt;
+    &lt;StandardDirectory Id="LocalAppDataFolder"&gt;
+      &lt;Directory Id="INSTALLFOLDER" Name="MyQuicker" /&gt;
+    &lt;/StandardDirectory&gt;
+  &lt;/Fragment&gt;
+
+  &lt;Fragment&gt;
+    &lt;ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER"&gt;
+      &lt;Component Id="MainExe" Guid="A1B2C3D4-1111-2222-3333-444455556666"&gt;
+        &lt;File Id="MyQuickerExe" Source="$(var.PublishDir)MyQuicker.exe" KeyPath="yes" /&gt;
+      &lt;/Component&gt;
+      &lt;Component Id="AutostartReg" Guid="A1B2C3D4-7777-8888-9999-AAAABBBBCCCC"&gt;
+        &lt;RegistryValue Root="HKCU"
+          Key="Software\Microsoft\Windows\CurrentVersion\Run"
+          Name="MyQuicker" Value="[INSTALLFOLDER]MyQuicker.exe"
+          Type="string" KeyPath="yes" /&gt;
+      &lt;/Component&gt;
+      &lt;Component Id="StartMenuShortcut" Guid="A1B2C3D4-DDDD-EEEE-FFFF-111122223333"&gt;
+        &lt;Shortcut Id="StartMenuShortcut" Name="MyQuicker"
+          Target="[INSTALLFOLDER]MyQuicker.exe" WorkingDirectory="INSTALLFOLDER" /&gt;
+        &lt;RegistryValue Root="HKCU" Key="Software\MyQuicker" Name="Shortcut"
+          Type="string" Value="1" KeyPath="yes" /&gt;
+      &lt;/Component&gt;
+    &lt;/ComponentGroup&gt;
+  &lt;/Fragment&gt;
+&lt;/Wix&gt;</code></pre>
+<h3>关键元素</h3>
+<table>
+<tr><th>元素</th><th>作用</th></tr>
+<tr><td><code>UpgradeCode</code></td><td><b>固定不变</b>的 GUID，标识产品族，升级靠它匹配旧版本</td></tr>
+<tr><td><code>Version</code></td><td>MSI 三段版本，由构建脚本注入</td></tr>
+<tr><td><code>InstallScope="perUser"</code></td><td>装到用户目录，无需 UAC</td></tr>
+<tr><td><code>MajorUpgrade</code></td><td>新版本覆盖旧版本</td></tr>
+<tr><td><code>LocalAppDataFolder</code></td><td>PerUser 安装位置</td></tr>
+<tr><td><code>AutostartReg</code></td><td>HKCU Run 键开机自启</td></tr>
+<tr><td><code>ui:WixUI</code></td><td>安装向导含目录选择</td></tr>
+</table>
+<div class="callout warn"><b>⚠️ 3 个 Component GUID 和 UpgradeCode 必须替换为真实 GUID</b>（<code>uuidgen</code> 或 VS 工具）。UpgradeCode 一旦发布永不更改。</div>
+</section>
+
+<section id="s3">
+<h2>3. 构建脚本：installer/build-msi.ps1</h2>
+<pre><code>param([string]$Version = "1.0.0")
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot -Parent
+
+# 1. 发布单文件 exe
+dotnet publish "$root/MyQuicker.csproj" -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true `
+  -o "$root/publish"
+
+# 2. 确保 wix 工具
+if ((dotnet tool list -g) -notmatch '\bwix\b') { dotnet tool install -g wix }
+
+# 3. 构建 MSI（需 UI 扩展）
+wix build "$root/installer/MyQuicker.wxs" `
+  -o "$root/publish/MyQuicker-$Version.msi" `
+  -d "Version=$Version" -d "PublishDir=$root/publish/" `
+  -ext WixToolset.UI.wixext
+
+# 4. 校验
+$hash = (Get-FileHash "$root/publish/MyQuicker-$Version.msi" -Algorithm SHA256).Hash
+"$hash  MyQuicker-$Version.msi" | Out-File "$root/publish/MyQuicker-$Version.msi.sha256"
+Write-Host "MSI: publish/MyQuicker-$Version.msi"</code></pre>
+<p>本地用法：<code>./installer/build-msi.ps1 -Version 1.0.0</code></p>
+</section>
+
+<section id="s4">
+<h2>4. 自动更新：src/Services/UpdateChecker.cs</h2>
+<p>应用内检查 GitHub Releases，发现新版下载 MSI 用 <code>msiexec</code> 静默安装。</p>
+<pre><code>public sealed class UpdateChecker
+{
+    private const string ReleasesUrl =
+        "https://api.github.com/repos/your-name/MyQuicker/releases/latest";
+    private static readonly HttpClient _http = new();
+
+    public async Task&lt;UpdateInfo?&gt; CheckAsync()
+    {
+        var current = Assembly.GetExecutingAssembly().GetName().Version ?? new(0,0,0);
+        var req = new HttpRequestMessage(HttpMethod.Get, ReleasesUrl);
+        req.Headers.UserAgent.ParseAdd("MyQuicker-Updater");
+        using var resp = await _http.SendAsync(req).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
+        var root = doc.RootElement;
+        var latest = ParseTag(root.GetProperty("tag_name").GetString());
+        if (latest &lt;= current) return null;
+
+        string? msiUrl = null;
+        foreach (var a in root.GetProperty("assets").EnumerateArray())
+        {
+            var name = a.GetProperty("name").GetString();
+            if (name?.EndsWith(".msi", StringComparison.OrdinalIgnoreCase) == true)
+            { msiUrl = a.GetProperty("browser_download_url").GetString(); break; }
+        }
+        return msiUrl is null ? null : new UpdateInfo(latest, msiUrl);
+    }
+
+    public async Task ApplyAsync(UpdateInfo info)
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), $"MyQuicker-{info.Version}.msi");
+        using var resp = await _http.GetAsync(info.MsiUrl).ConfigureAwait(false);
+        await using var fs = File.Create(tmp);
+        await resp.Content.CopyToAsync(fs).ConfigureAwait(false);
+
+        // 先退出当前进程，再静默安装（避免 exe 锁文件）
+        Process.Start(new ProcessStartInfo("msiexec", $"/i \"{tmp}\" /qb /norestart")
+            { UseShellExecute = false });
+        Environment.Exit(0);
+    }
+
+    static Version ParseTag(string? tag) =&gt;
+        Version.TryParse((tag ?? "0.0.0").TrimStart('v','V'), out var v) ? v : new(0,0,0);
+}
+public sealed record UpdateInfo(Version Version, string MsiUrl);</code></pre>
+<h3>集成到 App.OnStartup（后台非阻塞，仅 Release）</h3>
+<pre><code>#if !DEBUG
+    _ = CheckForUpdatesAsync();
+#endif
+
+private async Task CheckForUpdatesAsync()
+{
+    try {
+        var checker = new UpdateChecker();
+        var info = await checker.CheckAsync().ConfigureAwait(false);
+        if (info is null) return;
+        await Dispatcher.InvokeAsync(() =&gt; {
+            if (MessageBox.Show($"发现新版本 {info.Version}，是否立即更新？",
+                "MyQuicker 更新", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                _ = checker.ApplyAsync(info);
+        });
+    } catch (Exception ex) { Debug.WriteLine($"[Update] {ex.Message}"); }
+}</code></pre>
+<div class="callout good"><b>更新流程：</b>启动后台查 → 有新版弹框 → 用户同意 → 下载 MSI → 先退出旧进程 → msiexec 静默覆盖安装（MajorUpgrade）→ 新版自启。</div>
+</section>
+
+<section id="s5">
+<h2>5. CI：.github/workflows/release.yml</h2>
+<p>tag 推送触发：测试 → 发布 exe → WiX 打包 MSI → 上传 Release。</p>
+<pre><code>name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+
+      - name: Build &amp; Test
+        run: |
+          dotnet build --configuration Release
+          dotnet test --configuration Release --no-build
+
+      - name: Publish exe
+        run: dotnet publish MyQuicker.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true -o publish
+
+      - name: Install WiX
+        run: dotnet tool install -g wix
+
+      - name: Build MSI
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart('v')
+          wix build installer/MyQuicker.wxs -o "publish/MyQuicker-$v.msi" -d "Version=$v" -d "PublishDir=publish/" -ext WixToolset.UI.wixext
+          $h = (Get-FileHash "publish/MyQuicker-$v.msi" -Algorithm SHA256).Hash
+          "$h  MyQuicker-$v.msi" | Out-File "publish/MyQuicker-$v.msi.sha256"
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            publish/*.msi
+            publish/*.msi.sha256</code></pre>
+<div class="callout">发布：<code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code> → CI 自动构建 MSI 发到 GitHub Releases → 用户应用启动自动检测升级。</div>
+</section>
+
+<section id="s6">
+<h2>6. 版本号管理</h2>
+<p>MSI <code>ProductVersion</code> 只支持三段，与 csproj 对齐：</p>
+<table>
+<tr><th>来源</th><th>格式</th><th>示例</th></tr>
+<tr><td>csproj <code>VersionPrefix</code></td><td>三段</td><td>1.0.0</td></tr>
+<tr><td>Git tag</td><td>v 前缀</td><td>v1.0.0</td></tr>
+<tr><td>MSI <code>Version</code></td><td>三段</td><td>1.0.0</td></tr>
+<tr><td><code>AssemblyVersion</code></td><td>四段</td><td>1.0.0.0</td></tr>
+</table>
+</section>
+
+<section id="s7">
+<h2>7. 升级流程（MajorUpgrade 原理）</h2>
+<div class="flow">
+<span>装 v1.0.0</span><span class="arrow">→</span>
+<span>启动检测新版 v1.1.0</span><span class="arrow">→</span>
+<span>下载 v1.1.0.msi</span><span class="arrow">→</span>
+<span>msiexec /qb</span><span class="arrow">→</span>
+<span>同 UpgradeCode + 高 Version</span><span class="arrow">→</span>
+<span>卸载旧版 + 装新版</span>
+</div>
+<div class="callout warn"><b>⚠️ 升级时旧 exe 若运行会锁文件。</b>所以 <code>ApplyAsync</code> 先 <code>Environment.Exit(0)</code> 退出旧进程，再 <code>msiexec</code> 安装。路径 <code>[INSTALLFOLDER]MyQuicker.exe</code> 不变，开机自启键仍有效。</div>
+</section>
+
+<section id="s8">
+<h2>8. 测试清单</h2>
+<ul class="checklist">
+<li>本地 build-msi.ps1 生成 MSI</li>
+<li>双击 MSI 安装 → %LocalAppData%\MyQuicker\MyQuicker.exe 存在</li>
+<li>开始菜单出现 MyQuicker 快捷方式</li>
+<li>开机自启键写入 HKCU\...\Run</li>
+<li>控制面板「程序和功能」出现 MyQuicker 条目</li>
+<li>安装后 exe 运行，钩子/托盘/截图/设置全功能</li>
+<li>升级：装 v1.0.0 → v1.1.0 MSI 覆盖 → 旧版被替换，settings.json 保留</li>
+<li>降级：v1.1.0 已装 → 装 v1.0.0 → 提示无法降级</li>
+<li>自动更新：GitHub 发新 Release → 旧版启动检测 → 下载 MSI 静默升级</li>
+<li>卸载：exe、快捷方式、自启键、注册表条目全部清除</li>
+<li>干净 Windows（无 .NET）环境验证</li>
+</ul>
+</section>
+
+<section id="s9">
+<h2>9. 可选增强</h2>
+<table>
+<tr><th>增强</th><th>说明</th></tr>
+<tr><td>数字签名</td><td>signtool 签 MSI + exe，消除 SmartScreen（见 publish-guide §5）</td></tr>
+<tr><td>增量更新</td><td>MSI 不支持 delta；需小体积增量改 Velopack（放弃 MSI）</td></tr>
+<tr><td>后台静默更新</td><td><code>msiexec /qn</code>（无 UI），不弹框直接升级</td></tr>
+<tr><td>更新通道</td><td>stable/beta：GitHub Releases prerelease 标记区分</td></tr>
+<tr><td>卸载清理</td><td>WiX 自定义 action 清理 settings.json（默认保留用户数据）</td></tr>
+<tr><td>多语言</td><td>WiX 多语种资源（当前简中 2052/936）</td></tr>
+</table>
+<div class="callout">本文档是 <code>docs/publish-guide.md</code> 第 4、6 节的 MSI 方案落地。发布前补齐：csproj 版本号 + ApplicationIcon + LICENSE + MyQuicker.wxs（替换 4 个 GUID）+ UpdateChecker.cs + release.yml。</div>
+</section>
+
+</main>
+</body>
+</html>
