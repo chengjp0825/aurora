@@ -1,55 +1,23 @@
 # CLAUDE.md
 
 MyQuicker —— 基于 WPF 的个人快捷启动器。鼠标唤醒触发器（中键 / 侧键 / 纯轨迹画圈）触发无框菜单，支持自定义动作与原生截屏。
-Spec 驱动开发（SDD）：`SPEC.md` 为高层系统规范（PRD），`docs/` 为子系统详细规范。本文件仅作路由入口。
 
-## 技术栈
-- .NET 8.0-windows / WPF（`UseWPF`）+ WinForms（`UseWindowsForms`，仅用于 `Screen` / `NotifyIcon`）
-- P/Invoke 调用 `user32.dll` / `kernel32.dll` / `gdi32.dll` / `dwmapi.dll`
-- 配置持久化：`settings.json`（由 `SettingsManager` 单例运行时生成/读写，源码不纳管）；首次启动自动从旧 `appsettings.json` 迁移 `TriggerBinding`、命令与菜单配置
+本文件是 agent/开发者的**路由入口**；具体领域知识、架构决策与实施细节分散在下方指明的文档中，处理任务前请先按领域阅读。
 
-## 上下文检索指南（Context Router）
+## 先读这些（Context Router）
 
-处理任务前，先按领域阅读对应 `docs/` 文件：
-
-- 修改底层钩子 / 截屏坐标 / 触发器与手势轨迹算法 / GDI 回收 / 崩溃兜底 → 阅读 [`docs/02-interaction-engine.md`](docs/02-interaction-engine.md)
-- 新增设置项 / 修改配置落盘逻辑 / 扩展 `sys:` 指令 / 三层架构调整 → 阅读 [`docs/01-architecture-and-config.md`](docs/01-architecture-and-config.md)
-- 修改 UI 样式 / 增加新页面 / 调整颜色 / 菜单布局 / 截屏覆盖层与贴图视觉 → 阅读 [`docs/03-ui-and-styling.md`](docs/03-ui-and-styling.md)
+| 主题 | 文档 |
+|------|------|
+| 领域模型、术语表、项目全景 | [`CONTEXT.md`](CONTEXT.md) |
+| 架构决策记录（ADR） | [`docs/adr/`](docs/adr/) |
+| 已知缺陷与排查入口 | [`docs/known-issues.md`](docs/known-issues.md) |
+| Agent 工作约定（issue 追踪、标签、domain docs 布局） | [`docs/agents/`](docs/agents/) |
+| 实施计划 | [`docs/superpowers/plans/`](docs/superpowers/plans/) |
+| 设计规格 | [`docs/superpowers/specs/`](docs/superpowers/specs/) |
 
 未解决的已知缺陷见 [`docs/known-issues.md`](docs/known-issues.md)（截图 DPI 相关问题 KI-1 待排查，动手前先读）。
 
-系统级架构契约与模块职责见 [`SPEC.md`](SPEC.md)。
-
-## 开发约定
-- 一次只实现一个模块（SPEC §5）；先验证 `StructLayout` 内存对齐再测钩子。
-- 启动加载与零 IO 唤醒：`AppBootstrapper` 启动时通过 `SettingsManager` 加载 `Settings`，经 `BuiltInCommandProvider` / `UserCommandStore` 填充 `CommandRegistry`，经 `TriggerFactory` 构建运行时 `Trigger`，由 `MenuPresenter` 消费 `MenuGroup` 结构。唤醒路径上只允许内存访问，禁止磁盘 IO。
-- 设置保存后的重建流程：`SettingsWindow` 保存时，先由 `SettingsManager` 写入 `Settings`，再按上述启动链路重建运行时对象（Factory/Builder 单向构建），最后通知 `MenuPresenter` 刷新。不得直接修改已序列化的运行时对象。
-- 窗口生命周期：`MenuPresenter` 管理的 WPF 窗口为全局单例预热常驻，显隐走屏幕外瞬移 + `Opacity`（禁用 `Show`/`Hide`/`Visibility`），见 docs/03 §7。
-- 注释风格：公开 API 附 XML 注释，关键约束在注释中标注对应 SPEC 节/步骤（如 `Per SPEC §4.1`）。
-- 调试日志：一律用 `System.Diagnostics.Debug.WriteLine`（`[Conditional("DEBUG")]`，Debug 保留、Release 自动剥离）。**DEBUG 配置下必须能在 `dotnet watch run` / `dotnet run` 的终端看到日志输出**——机制：`<OutputType>` Debug=`Exe`（控制台子系统）/ Release=`WinExe`，`App.OnStartup` 在 `#if DEBUG` 注册 `ConsoleTraceListener`（→ stdout，终端可见）+ `TextWriterTraceListener`（→ exe 同目录 `debug.log`，可 `tail -f`），`Trace.AutoFlush=true`。新增调试日志继续用 `Debug.WriteLine`（由 ConsoleTraceListener 统一桥接到终端），**不要直接 `Console.WriteLine` 或 `AttachConsole`**。
-
-## Git Rules
-
-### Commit Format
-
-```text
-<type>(<scope>): <description>
-```
-
-### Rules
-
-- 一次 commit 只做一件逻辑变更
-- 禁止混合 feature / fix / refactor
-- 禁止使用模糊提交（update / fix bug / test）
-- 禁止提交信息携带 Agent、AI信息
-
-## 开发环境备注
-
-- **API = `glm-latest` 时命令安全分类器不可用**：Claude Code 的 auto 模式无法判定写操作安全性，会阻塞 `git commit` / `git add` / `git checkout` 等变更类命令（报 `auto mode cannot determine the safety`），只读工具（Read / Grep / Glob / `git diff` / `git status` / `git log`）不受影响。遇此情形：让用户手动批准该次工具调用，或切回可用 API（如 Claude 官方模型）后再提交；不要在分类器不可用时反复重试同一写命令。
-
-## 开发指令
-
-标准构建与测试命令：
+## 日常开发命令
 
 ```powershell
 # 构建整个解决方案
@@ -66,6 +34,12 @@ dotnet watch run --configuration Debug
 ```
 
 Release 构建产物为 `WinExe`（无控制台窗口），Debug 构建产物为 `Exe`（保留控制台窗口用于日志输出）。
+
+## 技术栈
+
+- .NET 8.0-windows / WPF（`UseWPF`）+ WinForms（`UseWindowsForms`，仅用于 `Screen` / `NotifyIcon`）
+- P/Invoke 调用 `user32.dll` / `kernel32.dll` / `gdi32.dll` / `dwmapi.dll`
+- 配置持久化：`settings.json`（由 `SettingsManager` 单例运行时生成/读写，源码不纳管）
 
 ## 架构核心原则
 
@@ -104,6 +78,34 @@ Release 构建产物为 `WinExe`（无控制台窗口），Debug 构建产物为
 5. **截图子域独立**
    - `ScreenshotCaptureService`、`ScreenshotOverlay`、`ScreenshotPinService` 组成独立子域，不得与菜单核心逻辑耦合。
    - `sys:screenshot` 仅作为工作流编排命令，按 Capture → Select Region → Pin 的顺序调用子域服务。
+   - 相关决策依据见 [`docs/adr/0003-screenshot-subdomain-seams.md`](docs/adr/0003-screenshot-subdomain-seams.md)。
+
+## 默认常驻动作
+
+首次启动（`settings.json` 不存在）时，`SettingsManager` 会自动注入四个常驻默认动作，并写入默认菜单组。这些动作被视为应用的“默认快捷项”，自带 logo（Segoe MDL2 Assets 图标码）：
+
+| 动作 | 命令 | 图标 |
+|------|------|------|
+| 计算器 | `calc.exe` | `E94C` |
+| 记事本 | `notepad.exe` | `E8A5` |
+| 我的网页 | `https://moongazer.cn` | `E71E` |
+| 截图 | `sys:snipping` | `E70F` |
+
+- `calc.exe` 与 `notepad.exe` 通过 `ProcessLauncher` 的白名单 + PATH 解析安全启动。
+- `https://moongazer.cn` 由 `OpenUrlCommand` 使用默认浏览器打开。
+- `sys:snipping` 是内建命令，由 `ScreenshotWorkflow` 驱动截图工作流。
+
+用户可在设置中心修改、删除或替换这些动作；源码不强制保留它们。
+
+## 开发约定
+
+- **一次只实现一个模块**（SPEC §5）；先验证 `StructLayout` 内存对齐再测钩子。
+- **启动加载与零 IO 唤醒**：`AppBootstrapper` 启动时通过 `SettingsManager` 加载 `Settings`，经 `BuiltInCommandProvider` / `UserCommandStore` 填充 `CommandRegistry`，经 `TriggerFactory` 构建运行时 `Trigger`，由 `MenuPresenter` 消费 `MenuGroup` 结构。唤醒路径上只允许内存访问，禁止磁盘 IO。
+- **低级钩子挂载时序（防启动鼠标卡死）**：`WH_MOUSE_LL` 全局钩子（`RawInputSource.Start()`）必须在 `App.OnStartup` 末尾挂载，且位于 `InitializeTray()`（`Shell_NotifyIcon` 与 explorer 同步通信）与 `Toast.Show()`（WPF 窗口渲染）之后；并用 `Dispatcher.CurrentDispatcher.BeginInvoke(..., DispatcherPriority.Background)` 延迟到下一帧空闲执行。原因：钩子回调在安装线程消息循环里 dispatch，钩子挂载后任何主线程同步阻塞都会让回调超时（`LowLevelHooksTimeout` 默认 300ms）触发全局鼠标卡死。详见 KI-24。
+- **设置保存后的重建流程**：`SettingsWindow` 保存时，先由 `SettingsManager` 写入 `Settings`，再按上述启动链路重建运行时对象（Factory/Builder 单向构建），最后通知 `MenuPresenter` 刷新。不得直接修改已序列化的运行时对象。
+- **窗口生命周期**：`MenuPresenter` 管理的 WPF 窗口为全局单例预热常驻，显隐走屏幕外瞬移 + `Opacity`（禁用 `Show`/`Hide`/`Visibility`），见 docs/03 §7。
+- **注释风格**：公开 API 附 XML 注释，关键约束在注释中标注对应 SPEC 节/步骤（如 `Per SPEC §4.1`）。
+- **调试日志**：一律用 `System.Diagnostics.Debug.WriteLine`（`[Conditional("DEBUG")]`，Debug 保留、Release 自动剥离）。**DEBUG 配置下必须能在 `dotnet watch run` / `dotnet run` 的终端看到日志输出**——机制：`<OutputType>` Debug=`Exe`（控制台子系统）/ Release=`WinExe`，`App.OnStartup` 在 `#if DEBUG` 注册 `ConsoleTraceListener`（→ stdout，终端可见）+ `TextWriterTraceListener`（→ exe 同目录 `debug.log`，可 `tail -f`），`Trace.AutoFlush=true`。新增调试日志继续用 `Debug.WriteLine`（由 ConsoleTraceListener 统一桥接到终端），**不要直接 `Console.WriteLine` 或 `AttachConsole`**。
 
 ## 命名与语义规范
 
@@ -113,17 +115,35 @@ Release 构建产物为 `WinExe`（无控制台窗口），Debug 构建产物为
 - `Action` 指菜单中的视觉配置节点；`Command` 指可执行逻辑载荷。二者不得混用。
 - `WakeContext` 携带唤醒时的位置、时间戳与触发源，是输入层与表现层之间的唯一解耦契约。
 
+## Git 规则
+
+### Commit Format
+
+```text
+<type>(<scope>): <description>
+```
+
+### Rules
+
+- 一次 commit 只做一件逻辑变更
+- 禁止混合 feature / fix / refactor
+- 禁止使用模糊提交（update / fix bug / test）
+- 禁止提交信息携带 Agent、AI信息
+
+## 开发环境备注
+
+- **API = `glm-latest` 时命令安全分类器不可用**：Claude Code 的 auto 模式无法判定写操作安全性，会阻塞 `git commit` / `git add` / `git checkout` 等变更类命令（报 `auto mode cannot determine the safety`），只读工具（Read / Grep / Glob / `git diff` / `git status` / `git log`）不受影响。遇此情形：让用户手动批准该次工具调用，或切回可用 API（如 Claude 官方模型）后再提交；不要在分类器不可用时反复重试同一写命令。
+
 ## Agent skills
 
 ### Issue tracker
 
-Issues are tracked through natural-language prompts/conversations in this repo, not in a formal issue tracker. See `docs/agents/issue-tracker.md`.
+Issues are tracked through natural-language prompts/conversations in this repo, not in a formal issue tracker. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 
 ### Triage labels
 
-Uses the default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Uses the default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
 
 ### Domain docs
 
-Single-context layout: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-
+Single-context layout: one `CONTEXT.md` and `docs/adr/` at the repo root. See [`docs/agents/domain.md`](docs/agents/domain.md).

@@ -230,6 +230,20 @@
 - **修复方向**：`ClipCursor` 与 `OnClosed` 释放配对 finally，或仅拖拽期间裁剪。
 - **状态**：待修复
 
+## KI-24：双击启动瞬间全局鼠标卡死（低级钩子挂载过早）—— **已修复**
+
+- **严重度**：Critical
+- **报告**：2026-07-07（本地实测）
+- **修复时间**：2026-07-07。
+- **现象**：双击启动应用瞬间，鼠标产生肉眼可见的全局短时间卡死。
+- **根因**：`App.OnStartup` 在 `MainWindow.Show()` 之后、`InitializeTray()` 之前同步调用 `RawInputSource.Start()` 挂载 `WH_MOUSE_LL` 全局钩子。钩子挂载后，`InitializeTray()`（`Shell_NotifyIcon(NIM_ADD)` 与 explorer 同步通信）与 `Toast.Show()`（`new ToastWindow().Show()` WPF 渲染）仍在主线程同步执行，阻塞消息循环；`WH_MOUSE_LL` 回调在安装线程消息循环里 dispatch，主线程阻塞导致回调排队超时（`LowLevelHooksTimeout` 默认 300ms），鼠标消息挂起 → 全局卡死。
+- **修复方案**：把 `RawInputSource.Start()` 物理后移到 `InitializeTray()` + `Toast.Show()` 之后（启动收尾末步），并用 `Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => _bootstrapper.RawInputSource.Start()), DispatcherPriority.Background)` 包裹，强制推迟到下一帧消息循环 Pump 完托盘与 Toast 渲染积压消息、主线程回归静默后再激活钩子。约定已固化至 `CLAUDE.md`「低级钩子挂载时序」。
+- **涉及文件**：`App.xaml.cs`。
+- **验证要点**：
+  - `dotnet build -c Release` 0 警告 0 错误；`dotnet test` 154 通过。
+  - 手动：双击 Release exe 冷启动，鼠标丝滑无卡顿。
+- **状态**：已修复
+
 ## 低优先级清理清单（审查 Low，未单独编号）
 
 - **业务 L-1**：`Services/ActionResult.cs` + `UI/MainWindow.xaml.cs:319-323` — `ActionResult.CapturedImage` 死字段+潜在 GDI 泄漏陷阱；消费方释放或删字段。
