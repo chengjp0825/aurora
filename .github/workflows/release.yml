@@ -30,6 +30,24 @@ jobs:
           -p:SatelliteResourceLanguages=zh-Hans
           -o publish
 
+      # 可选数字签名（门控）：GitHub secrets 设置 AURORA_CERT_PFX_B64（PFX 的 base64）+ AURORA_CERT_PASS 后生效。
+      # 未设置则跳过，产物未签名（SmartScreen 会警告）。exe 须在 harvest 前签名，使 MSI 内嵌已签 exe。
+      - name: Sign exe (if cert present)
+        shell: pwsh
+        env:
+          CERT_PFX_B64: ${{ secrets.AURORA_CERT_PFX_B64 }}
+          CERT_PASS: ${{ secrets.AURORA_CERT_PASS }}
+        run: |
+          if (-not $env:CERT_PFX_B64) { Write-Host "No AURORA_CERT_PFX_B64 secret — skipping exe signing"; exit 0 }
+          $pfx = Join-Path $env:TEMP "aurora-cert.pfx"
+          [System.IO.File]::WriteAllBytes($pfx, [System.Convert]::FromBase64String($env:CERT_PFX_B64))
+          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          if (-not $signtool) { throw "signtool not found on runner (Windows SDK missing?)" }
+          & $signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:CERT_PASS publish/aurora.exe
+          if ($LASTEXITCODE -ne 0) { throw "exe signing failed" }
+          Remove-Item $pfx -Force
+          Write-Host "Signed publish/aurora.exe"
+
       - name: Install WiX v4 + UI extension
         shell: pwsh
         run: |
@@ -79,6 +97,24 @@ jobs:
           $h = (Get-FileHash "publish/aurora-$v.msi" -Algorithm SHA256).Hash
           "$h  aurora-$v.msi" | Out-File "publish/aurora-$v.msi.sha256" -Encoding ascii
           Write-Host "SHA256: $h"
+
+      - name: Sign MSI (if cert present)
+        shell: pwsh
+        env:
+          CERT_PFX_B64: ${{ secrets.AURORA_CERT_PFX_B64 }}
+          CERT_PASS: ${{ secrets.AURORA_CERT_PASS }}
+        run: |
+          if (-not $env:CERT_PFX_B64) { Write-Host "No cert — skipping MSI signing"; exit 0 }
+          $v = "${{ github.ref_name }}".TrimStart('v')
+          if ([string]::IsNullOrWhiteSpace($v) -or $v -eq '${{ github.ref_name }}') { $v = "0.0.0" }
+          $msi = "publish/aurora-$v.msi"
+          $pfx = Join-Path $env:TEMP "aurora-cert.pfx"
+          [System.IO.File]::WriteAllBytes($pfx, [System.Convert]::FromBase64String($env:CERT_PFX_B64))
+          $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:CERT_PASS $msi
+          if ($LASTEXITCODE -ne 0) { throw "MSI signing failed" }
+          Remove-Item $pfx -Force
+          Write-Host "Signed $msi"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
