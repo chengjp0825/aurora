@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace MyQuicker.Converters;
+namespace Aurora.Converters;
 
 /// <summary>
 /// Segoe MDL2 Assets 图标码（hex 字符串如 "EFA8"）→ 字形字符。

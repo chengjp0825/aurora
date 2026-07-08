@@ -1,4 +1,4 @@
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>ActionExecutor 执行命令后的结果分类。</summary>
 public enum ActionOutcomeKind

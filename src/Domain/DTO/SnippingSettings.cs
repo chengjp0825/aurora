@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>像素放大镜相对鼠标的初始方向。</summary>
 public enum MagnifierPosition

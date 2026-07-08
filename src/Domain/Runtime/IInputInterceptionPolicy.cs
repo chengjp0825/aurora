@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// Decides whether a matched input event should be swallowed (not passed to the foreground app).

@@ -1,11 +1,11 @@
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Threading;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.UI;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime;
+using Aurora.UI;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// <see cref="IScreenshotOverlay"/> 的 WPF 适配：用 <see cref="ScreenshotWindow"/> 完成区域选择。

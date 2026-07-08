@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Threading.Tasks;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 贴图窗口 seam：把一张已裁剪的截图钉在指定屏幕位置。

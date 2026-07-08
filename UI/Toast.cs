@@ -1,4 +1,4 @@
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// Toast 通知入口。在 UI 线程调用 <see cref="Show"/> 弹出瞬时通知（剪贴板失败、启动成功等）。

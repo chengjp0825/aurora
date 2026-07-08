@@ -10,7 +10,7 @@ $publishDir = "$root/publish"
 #    - 先清空 publish 目录，避免上次构建产物（msi/pdb 等）残留被 harvest 打进新 MSI
 Write-Host "[1/5] Publishing self-contained exe..."
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
-dotnet publish "$root/MyQuicker.csproj" -c Release -r win-x64 --self-contained true `
+dotnet publish "$root/aurora.csproj" -c Release -r win-x64 --self-contained true `
   -p:PublishReadyToRun=true `
   -p:SatelliteResourceLanguages=zh-Hans `
   -o $publishDir
@@ -63,7 +63,7 @@ Write-Host "  Harvested $i files"
 
 # 4. Build MSI (PerUser, WixUI_InstallDir directory picker)
 Write-Host "[4/5] Building MSI..."
-wix build "$root/installer/MyQuicker.wxs" "$root/installer/harvest.wxs" `
+wix build "$root/installer/aurora.wxs" "$root/installer/harvest.wxs" `
   -o "$publishDir/aurora-$Version.msi" `
   -d "Version=$Version" -d "PublishDir=$publishDir/" `
   -ext WixToolset.UI.wixext

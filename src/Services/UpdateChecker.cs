@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 检查 GitHub Releases 最新版本并下载 MSI 静默升级。
@@ -15,9 +15,9 @@ namespace MyQuicker.Services;
 /// </summary>
 public sealed class UpdateChecker
 {
-    // TODO: 发布前替换为真实仓库地址（owner/repo）。
+    // 真实发布仓库地址（owner/repo = chengjp0825/aurora）；与 CI 产物 aurora-<v>.msi 命名一致。
     private const string ReleasesUrl =
-        "https://api.github.com/repos/MyQuicker/MyQuicker/releases/latest";
+        "https://api.github.com/repos/chengjp0825/aurora/releases/latest";
 
     private static readonly HttpClient _http = new HttpClient();
 

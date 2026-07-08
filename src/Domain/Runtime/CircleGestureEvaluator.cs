@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 画圈几何判定：纯函数，无状态，与输入源无关。

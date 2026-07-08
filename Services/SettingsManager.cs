@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using MyQuicker.Domain.DTO;
+using Aurora.Domain.DTO;
 
 #pragma warning disable CS0618 // 迁移代码需要读取旧版 ActionItem.Command 字段。
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 统一配置中心：负责 <see cref="Settings"/> DTO 的磁盘读写与数据迁移。

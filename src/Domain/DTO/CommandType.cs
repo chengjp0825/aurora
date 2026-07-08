@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 public enum CommandType
 {

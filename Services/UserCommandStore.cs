@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime.Commands;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime.Commands;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// Loads user-defined commands from the stable <see cref="Settings.Commands"/> catalog

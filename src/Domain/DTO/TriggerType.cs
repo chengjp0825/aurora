@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>触发器类型枚举。</summary>
 public enum TriggerType

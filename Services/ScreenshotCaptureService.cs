@@ -2,10 +2,10 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Windows.Forms;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Interop;
+using Aurora.Domain.DTO;
+using Aurora.Interop;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// Captures a full base image spanning the capture scope and returns it as a

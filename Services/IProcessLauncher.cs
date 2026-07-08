@@ -1,4 +1,4 @@
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 外部进程启动抽象：让 Command 执行逻辑可通过测试替身替换，

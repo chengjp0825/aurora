@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Debug 为 Exe（控制台子系统）：dotnet watch run / dotnet run 时 Debug.WriteLine 经
+         ConsoleTraceListener → stdout 直接出现在终端；Release 为 WinExe（托盘常驻无控制台）。 -->
+    <OutputType Condition="'$(Configuration)'=='Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)'=='Release'">WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <!-- WFAC010 是 WinForms 的 analyzer，对 WPF 使用 app.manifest 声明 DPI awareness 的场景误报，此处抑制。 -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+
+    <!-- 发布元数据（应用名 aurora，源码命名空间 Aurora.*） -->
+    <AssemblyName>aurora</AssemblyName>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>aurora</Company>
+    <Product>aurora</Product>
+    <Copyright>Copyright © 2026 aurora</Copyright>
+    <Description>基于 WPF 的个人快捷启动器：鼠标唤醒触发器 + 自定义动作 + 原生截屏</Description>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="aurora.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 测试项目位于仓库内，但不应被主应用编译。 -->
+    <Compile Remove="tests\**\*.cs" />
+  </ItemGroup>
+
+</Project>

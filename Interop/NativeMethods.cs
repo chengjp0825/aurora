@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace MyQuicker.Interop;
+namespace Aurora.Interop;
 
 /// <summary>
 /// Contains all P/Invoke signatures for user32.dll / kernel32.dll.

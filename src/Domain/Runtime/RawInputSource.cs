@@ -2,11 +2,11 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using MyQuicker.Interop;
-using MyQuicker.Services;
-using static MyQuicker.Interop.NativeMethods;
+using Aurora.Interop;
+using Aurora.Services;
+using static Aurora.Interop.NativeMethods;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// Thin adapter around the WH_MOUSE_LL global hook. Translates Win32 messages into

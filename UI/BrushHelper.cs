@@ -1,6 +1,6 @@
 using System.Windows.Media;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// JSON 颜色串（"#AARRGGBB" 或命名色如 "Red"/"Gray"/"Black"）转 WPF <see cref="Brush"/ > 的集中转换器。

@@ -1,10 +1,10 @@
 using System.Linq;
 using System.Windows;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.UI;
+using Aurora.Domain.Runtime;
+using Aurora.UI;
 using Application = System.Windows.Application;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 基于当前打开覆盖层窗口的唤醒阻塞策略。

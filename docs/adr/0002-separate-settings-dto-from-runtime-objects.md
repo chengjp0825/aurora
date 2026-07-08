@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-MyQuicker persists user configuration to `settings.json`. The configuration describes:
+aurora persists user configuration to `settings.json`. The configuration describes:
 
 - Which inputs wake the menu (`TriggerBinding`).
 - Which commands exist (`Command` data).

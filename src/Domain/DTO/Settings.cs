@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>
 /// 顶层持久化 DTO，唯一被序列化到 settings.json 的对象。

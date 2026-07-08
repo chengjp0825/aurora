@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Security;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.Domain.Runtime.Commands;
+namespace Aurora.Domain.Runtime.Commands;
 
 /// <summary>使用默认浏览器打开 HTTP/HTTPS 链接的命令。</summary>
 public sealed class OpenUrlCommand : ICommand

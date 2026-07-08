@@ -7,15 +7,15 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using MyQuicker.Interop;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Services;
-using static MyQuicker.Interop.NativeMethods;
+using Aurora.Interop;
+using Aurora.Domain.DTO;
+using Aurora.Services;
+using static Aurora.Interop.NativeMethods;
 using Cursors = System.Windows.Input.Cursors;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// Full-screen snipping overlay: hover to auto-detect window edges, or

@@ -3,15 +3,15 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading;
 using System.Threading.Tasks;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 截图工作流编排器：Capture → Select Region → Pin。
 /// 把原先散落在 <see cref="UI.MainWindow"/> 与 <see cref="UI.ScreenshotWindow"/> 中的流程收敛到可测试的单一入口。
 /// 本类仅依赖 GDI+，不引用任何 WPF 类型，保证领域层与 UI 框架解耦。
-/// 视觉参数由具体适配器（如 <see cref="MyQuicker.Services.ScreenshotOverlayAdapter"/>）持有，不在工作流中重复传递。
+/// 视觉参数由具体适配器（如 <see cref="Aurora.Services.ScreenshotOverlayAdapter"/>）持有，不在工作流中重复传递。
 /// </summary>
 public class ScreenshotWorkflow
 {

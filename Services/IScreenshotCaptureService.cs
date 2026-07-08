@@ -1,4 +1,4 @@
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 截图采集服务接口：返回持有非托管 GDI 资源的 <see cref="CapturedImage"/>，

@@ -1,11 +1,11 @@
 using System.Collections.Generic;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.Domain.Runtime.Commands;
+namespace Aurora.Domain.Runtime.Commands;
 
 /// <summary>
-/// 无状态可执行命令。命令只接收纯粹的键值对参数，不依赖具体 DTO（如 <see cref="MyQuicker.Domain.DTO.ActionItem"/>）。
-/// 返回值统一为 <see cref="ActionResult"/>，由调用方（<see cref="MyQuicker.Services.ActionExecutor"/>）统一捕获异常并包装。
+/// 无状态可执行命令。命令只接收纯粹的键值对参数，不依赖具体 DTO（如 <see cref="Aurora.Domain.DTO.ActionItem"/>）。
+/// 返回值统一为 <see cref="ActionResult"/>，由调用方（<see cref="Aurora.Services.ActionExecutor"/>）统一捕获异常并包装。
 /// </summary>
 public interface ICommand
 {

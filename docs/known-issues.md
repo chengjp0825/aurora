@@ -16,7 +16,7 @@
 3. 新增 `NativeMethods.GetDpiForWindow(hwnd)` 与 `DpiHelper.ScaleForWindow(hwnd)`，在 `SourceInitialized` / `DpiChanged` 中直接按 HWND 取确定性显示器 DPI，取代不稳定的 `TransformToDevice`。
 4. `PinWindow` 保持 `AllowsTransparency="True"`（阴影需要 alpha），但 scale 来源同样改为 `GetDpiForWindow(hwnd)`。
 
-**涉及文件**：`UI/ScreenshotWindow.xaml`、`UI/ScreenshotWindow.xaml.cs`、`UI/PinWindow.xaml.cs`、`Services/DpiHelper.cs`、`Interop/NativeMethods.cs`、`app.manifest`、`MyQuicker.csproj`。
+**涉及文件**：`UI/ScreenshotWindow.xaml`、`UI/ScreenshotWindow.xaml.cs`、`UI/PinWindow.xaml.cs`、`Services/DpiHelper.cs`、`Interop/NativeMethods.cs`、`app.manifest`、`aurora.csproj`。
 
 **验证要点**：
 - 混合 DPI 多显示器环境下，截图窗与贴图窗的 `renderScale` 日志值应等于目标显示器缩放系数。
@@ -35,7 +35,7 @@
 - **现象**：配置“画圈唤醒”后，画圈永远打不开菜单。`WM_MOUSEMOVE` 经 `EventReceived` 路由，但无任何代码订阅该事件，MouseMove 永不到达 `CircleGestureTrigger`。单元测试因隔离测试而通过。
 - **根因**：计划 `docs/superpowers/plans/2026-07-06-deepen-architecture-seams.md` Phase 4 Step 2 要求的 `RawInputSource.EventReceived += (s,ev) => TriggerEvaluator.Evaluate(ev)...` 接线从未实现；`App.xaml.cs` 仅订阅 `WakeContextReceived` 与 `AnyMouseDown`。
 - **修复方案**：顺“内部评估”路线（与 `MouseDown` 路径一致）为 `WM_MOUSEMOVE` 补评估——把 `HookCallback` 的消息派发提取为 `internal ProcessMouseMessage`，`WM_MOUSEMOVE` 分支同步调新增的 `EvaluateAndPostWake`（评估→匹配则投递 `WakeContextReceived`）；`EvaluateAndMaybeSwallow` 复用 `EvaluateAndPostWake`；`PostEvent` 加 `EventReceived is null` 短路避免高频无用闭包。重构严格等价于原 `MouseDown` 行为。补 `RawInputSourceTests`（6 例）覆盖画圈唤醒、直线不匹配、`EventReceived` seam、无订阅短路、`AnyMouseDown`、吞键。
-- **涉及文件**：`src/Domain/Runtime/RawInputSource.cs`、`tests/MyQuicker.Tests/Domain/Runtime/RawInputSourceTests.cs`。
+- **涉及文件**：`src/Domain/Runtime/RawInputSource.cs`、`tests/aurora.Tests/Domain/Runtime/RawInputSourceTests.cs`。
 - **验证要点**：
   - `dotnet test` 全绿（154 通过，含新增 6 例）。
   - 手动：配置画圈触发器后画圈应能打开菜单（需退出当前运行中的 aurora 实例后重新运行确认）。

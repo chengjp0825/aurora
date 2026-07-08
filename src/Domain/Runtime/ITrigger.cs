@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>唤醒触发器策略抽象。</summary>
 public interface ITrigger

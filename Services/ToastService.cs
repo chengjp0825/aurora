@@ -1,8 +1,8 @@
 using System.Windows.Threading;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.UI;
+using Aurora.Domain.Runtime;
+using Aurora.UI;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// <see cref="IToastService"/> 的 WPF 实现：委托给 <see cref="Toast.Show"/>。

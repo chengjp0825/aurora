@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>
 /// A single user-configurable action. Implements INotifyPropertyChanged so

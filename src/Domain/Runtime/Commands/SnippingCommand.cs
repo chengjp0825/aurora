@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.Domain.Runtime.Commands;
+namespace Aurora.Domain.Runtime.Commands;
 
 /// <summary>发起屏幕截图工作流。</summary>
 public sealed class SnippingCommand : ICommand

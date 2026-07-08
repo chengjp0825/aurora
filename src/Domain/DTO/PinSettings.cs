@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>贴图窗口参数。仅包含纯数据。</summary>
 public sealed class PinSettings

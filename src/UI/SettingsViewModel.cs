@@ -3,10 +3,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Services;
+using Aurora.Domain.DTO;
+using Aurora.Services;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>Bindable view-model for SettingsWindow; owns editable copies of settings DTOs.</summary>
 public sealed class SettingsViewModel : INotifyPropertyChanged

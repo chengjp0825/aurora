@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-MyQuicker wakes its menu in response to user input. Two physically different kinds of input exist:
+aurora wakes its menu in response to user input. Two physically different kinds of input exist:
 
 - **Instantaneous hardware input** — pressing a mouse button (middle, X1, X2) or a keyboard shortcut.
 - **Spatio-temporal pointer motion** — drawing a shape such as a circle while holding a button.

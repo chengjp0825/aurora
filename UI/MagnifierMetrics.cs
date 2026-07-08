@@ -1,6 +1,6 @@
-using MyQuicker.Domain.DTO;
+using Aurora.Domain.DTO;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 像素放大镜的布局计算助手：把“物理源像素块”映射为 WPF DIP 尺寸与偏移，

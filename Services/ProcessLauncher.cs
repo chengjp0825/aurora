@@ -6,7 +6,7 @@ using System.Linq;
 using System.Security;
 using System.Text;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary><see cref="IProcessLauncher"/> 的默认实现：安全地启动外部程序。</summary>
 /// <remarks>

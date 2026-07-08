@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 截图子域实体：承载 GDI+ <see cref="Bitmap"/> 与采集元数据。

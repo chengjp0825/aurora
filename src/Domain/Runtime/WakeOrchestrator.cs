@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 唤醒策略中枢：拥有菜单生命周期状态机、防抖、过期事件过滤、多显示器边界计算、

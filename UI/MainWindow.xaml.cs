@@ -5,16 +5,16 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.Interop;
-using MyQuicker.Services;
-using static MyQuicker.Interop.NativeMethods;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime;
+using Aurora.Interop;
+using Aurora.Services;
+using static Aurora.Interop.NativeMethods;
 using Button = System.Windows.Controls.Button;
-using DomainPoint = MyQuicker.Domain.Runtime.Point;
+using DomainPoint = Aurora.Domain.Runtime.Point;
 using WpfPoint = System.Windows.Point;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 唤醒菜单（全局单例，预热常驻）。显式实现 <see cref="IMenuPresenter"/>，

@@ -1,6 +1,6 @@
 using System;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 菜单外部点击信号源：当用户点击菜单内容区域之外时触发，

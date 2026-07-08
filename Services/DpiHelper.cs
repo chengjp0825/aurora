@@ -1,8 +1,8 @@
 using System.Drawing;
 using System.Windows.Forms;
-using MyQuicker.Interop;
+using Aurora.Interop;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// DIP（WPF 逻辑像素）↔ 物理像素 的缩放系数，按目标显示器取真实 DPI。Per docs/02 §5。

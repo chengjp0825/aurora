@@ -1,8 +1,8 @@
 using System;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Interop;
+using Aurora.Domain.DTO;
+using Aurora.Interop;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 将 <see cref="TriggerBinding"/> DTO 转换为运行时 <see cref="ITrigger"/> 的单向工厂。

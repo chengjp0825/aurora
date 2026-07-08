@@ -1,7 +1,7 @@
 using System.Windows.Threading;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// <see cref="ISynchronizationContext"/> 的 WPF Dispatcher 适配器。

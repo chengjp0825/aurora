@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>
 /// 菜单分组 DTO。仅包含视觉与动作引用数据。

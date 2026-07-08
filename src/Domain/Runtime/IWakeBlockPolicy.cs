@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 唤醒阻塞策略：当某些覆盖层窗口（如截图、设置）处于打开状态时，

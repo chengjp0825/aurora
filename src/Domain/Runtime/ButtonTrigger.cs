@@ -1,7 +1,7 @@
 using System;
-using MyQuicker.Interop;
+using Aurora.Interop;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>瞬时硬件输入触发器（中键、侧键等）。</summary>
 public sealed class ButtonTrigger : ITrigger

@@ -1,8 +1,8 @@
-# MyQuicker Domain Glossary
+# aurora Domain Glossary
 
 ## Trigger
 
-Any user action that can wake the MyQuicker menu. The top-level abstraction in the wake pipeline.
+Any user action that can wake the aurora menu. The top-level abstraction in the wake pipeline.
 
 - A Trigger is evaluated against incoming input state.
 - It returns a `TriggerMatchResult`.
@@ -136,7 +136,7 @@ A presentation-level container that groups `Action`s in the menu.
 
 ## Menu
 
-The single global menu shown by MyQuicker.
+The single global menu shown by aurora.
 
 - Composed of one or more `MenuGroup`s.
 - Opened by any matched `Trigger` through `WakeOrchestrator` and `MenuPresenter`.

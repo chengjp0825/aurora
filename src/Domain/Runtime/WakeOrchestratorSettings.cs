@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>WakeOrchestrator 配置。</summary>
 public sealed record WakeOrchestratorSettings(

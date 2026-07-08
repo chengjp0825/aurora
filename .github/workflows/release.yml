@@ -24,7 +24,7 @@ jobs:
 
       - name: Publish exe (expanded, self-contained)
         run: >-
-          dotnet publish MyQuicker.csproj -c Release -r win-x64
+          dotnet publish aurora.csproj -c Release -r win-x64
           --self-contained true
           -p:PublishReadyToRun=true
           -p:SatelliteResourceLanguages=zh-Hans
@@ -74,7 +74,7 @@ jobs:
           $v = "${{ github.ref_name }}".TrimStart('v')
           if ([string]::IsNullOrWhiteSpace($v) -or $v -eq '${{ github.ref_name }}') { $v = "0.0.0" }
           Write-Host "Version: $v"
-          wix build installer/MyQuicker.wxs installer/harvest.wxs -o "publish/aurora-$v.msi" -d "Version=$v" -d "PublishDir=$PWD/publish/" -ext WixToolset.UI.wixext
+          wix build installer/aurora.wxs installer/harvest.wxs -o "publish/aurora-$v.msi" -d "Version=$v" -d "PublishDir=$PWD/publish/" -ext WixToolset.UI.wixext
           if (-not (Test-Path "publish/aurora-$v.msi")) { throw "MSI build failed" }
           $h = (Get-FileHash "publish/aurora-$v.msi" -Algorithm SHA256).Hash
           "$h  aurora-$v.msi" | Out-File "publish/aurora-$v.msi.sha256" -Encoding ascii

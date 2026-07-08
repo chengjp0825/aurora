@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>
 /// 应用通用偏好设置 DTO。仅包含纯数据子对象。

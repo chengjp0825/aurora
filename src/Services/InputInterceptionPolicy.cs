@@ -1,6 +1,6 @@
-using MyQuicker.Domain.Runtime;
+using Aurora.Domain.Runtime;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// Simple interception policy driven by a user setting.

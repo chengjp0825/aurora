@@ -2,9 +2,9 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
-using MyQuicker.Interop;
+using Aurora.Interop;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// GDI+ <see cref="Bitmap"/> 与 WPF <see cref="BitmapSource"/> 之间的转换辅助。

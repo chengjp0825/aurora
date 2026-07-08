@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!--
+    aurora MSI 安装包（PerUser，无需 UAC）。
+    构建：installer/build-msi.ps1 -Version 1.0.0
+    升级：UpgradeCode 固定不变，新 Version 的 MSI 覆盖旧版本（MajorUpgrade）。
+  -->
+  <Package
+    Name="aurora"
+    Language="2052"
+    Codepage="936"
+    Version="$(var.Version)"
+    Manufacturer="aurora"
+    UpgradeCode="71AB04B5-95B5-4006-9AAF-962F6672A7E9"
+    Scope="perUser">
+
+    <!-- 允许新版本覆盖旧版本（升级）；阻止降级 -->
+    <MajorUpgrade
+      DowngradeErrorMessage="已安装更新版本的 aurora，无法降级。" />
+
+    <!-- 路径自愈：升级/静默安装前，AppSearch 从 HKCU\Software\aurora\InstallPath 捞回上一次
+         安装目录，单向绑定给 INSTALLFOLDER 属性。同名 Property 在 CostInitialize 前覆盖
+         Directory 默认值（%LocalAppData%\aurora），确保 MajorUpgrade 覆盖时路径恒定、
+         用户自定义路径不丢失。首次安装注册表无值 → Property 为空 → 回退 Directory 默认值。
+         Type="directory"：旧路径目录不存在时置空，回退默认，避免装到无效路径。
+         注：WiX v4 的 RegistrySearch 无 Win64 属性（v3 概念），默认按包位数搜索；
+         InstallPathReg 写入与 RegistrySearch 读取同为默认视图，自读自写一致。 -->
+    <Property Id="INSTALLFOLDER">
+      <RegistrySearch Id="SearchInstallPath"
+        Root="HKCU"
+        Key="Software\aurora"
+        Name="InstallPath"
+        Type="directory" />
+    </Property>
+
+    <!-- 卸载/升级前强制关闭正在运行的 aurora.exe，避免文件被占用导致错误 5（ACCESS_DENIED） -->
+    <CustomAction Id="SetTaskkillPath" Property="TASKKILL_EXE" Value="[System64Folder]taskkill.exe" Execute="immediate" />
+    <CustomAction Id="KillAurora" Property="TASKKILL_EXE" ExeCommand="/f /im aurora.exe" Execute="immediate" Return="ignore" />
+
+    <!-- 纯卸载（非升级）时清理运行时生成的用户数据：settings.json 及其临时/日志/旧版迁移文件。
+         升级时（旧产品被 MajorUpgrade 卸载）UPGRADINGPRODUCTCODE 被设置为新产品 ProductCode，
+         跳过清理以保留用户设置（见 docs/msi-publish-setup.md §7）。
+         注：用 MSI 内置 UPGRADINGPRODUCTCODE 而非 WiX 的 WIX_UPGRADE_DETECTED——后者仅新产品
+         session 可见，旧产品卸载上下文读不到，会误判为纯卸载从而删掉 settings.json。 -->
+    <CustomAction Id="SetCmdPath" Property="CMD_EXE" Value="[System64Folder]cmd.exe" Execute="immediate" />
+    <CustomAction Id="CleanupRuntimeFiles" Property="CMD_EXE"
+      ExeCommand='/c cd /d "[INSTALLFOLDER]" &amp;&amp; del /q /f "settings.json" "settings.json.tmp" "debug.log" "appsettings.json" 2>nul'
+      Execute="immediate" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- 时序（先杀后清）：KillAurora 锚 After InstallValidate（最早标准锚点）强杀 aurora.exe
+           释放 debug.log 等句柄；CleanupRuntimeFiles 链在 SetCmdPath 之后，确保纯卸载时
+           del 不再因文件占用失败、0 字节残留。升级时 UPGRADINGPRODUCTCODE 被设置，跳过清理保留设置。 -->
+      <Custom Action="SetTaskkillPath" Before="KillAurora" />
+      <Custom Action="KillAurora" After="InstallValidate" />
+      <Custom Action="SetCmdPath" After="KillAurora" />
+      <Custom Action="CleanupRuntimeFiles" After="SetCmdPath" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <Media Id="1" Cabinet="aurora.cab" EmbedCab="yes" />
+
+    <!-- 安装目录选择 UI（WixUI_InstallDir：欢迎→目录→进度→完成） -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+
+    <Feature Id="Complete" Title="aurora" Level="1">
+      <ComponentGroupRef Id="HarvestComponents" />
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <!-- PerUser：装到 %LocalAppData%\aurora，无需管理员 -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="aurora" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+
+      <!-- 持久化当前安装路径到注册表，供下次升级/静默安装时上面的 RegistrySearch 读取（路径自愈）。
+           与 AutostartReg/Shortcut/UninstallShortcut 同写 HKCU\Software\aurora，各自 Name 不冲突。 -->
+      <Component Id="InstallPathReg" Guid="8F5C83D2-6EDE-4D8A-991C-A5D69621F783">
+        <RegistryValue Root="HKCU" Key="Software\aurora" Name="InstallPath"
+          Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+      </Component>
+
+      <!-- 开机自启：写 HKCU Run 键（exe 及依赖由 heat harvest 的 HarvestComponents 提供） -->
+      <Component Id="AutostartReg" Guid="C5487722-B855-4319-82F2-31E7764F6988">
+        <RegistryValue Root="HKCU"
+          Key="Software\Microsoft\Windows\CurrentVersion\Run"
+          Name="aurora"
+          Value="[INSTALLFOLDER]aurora.exe"
+          Type="string" KeyPath="yes" />
+      </Component>
+
+      <!-- 卸载快捷方式：双击调用 msiexec /x [ProductCode] 卸载 -->
+      <Component Id="UninstallShortcut" Guid="45515FEA-8379-4644-BA25-E1199A8558A1">
+        <Shortcut Id="UninstallShortcut"
+          Name="卸载 aurora"
+          Description="卸载 aurora"
+          Target="[System64Folder]msiexec.exe"
+          Arguments="/x [ProductCode]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\aurora" Name="UninstallShortcut"
+          Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- 开始菜单快捷方式（独立目录，避免落在安装目录） -->
+  <Fragment>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuAuroraDir" Name="aurora" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="StartMenuShortcuts" Directory="StartMenuAuroraDir">
+      <Component Id="StartMenuShortcut" Guid="69A0868A-11E5-454C-B991-B3E94DE733C4">
+        <Shortcut Id="StartMenuShortcut"
+          Name="aurora"
+          Target="[INSTALLFOLDER]aurora.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\aurora" Name="Shortcut"
+          Type="string" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

@@ -1,6 +1,6 @@
-using MyQuicker.Domain.Runtime;
+using Aurora.Domain.Runtime;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 命令执行时的运行时依赖上下文。

@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>画圈手势灵敏度预设。低=不易误触，高=易触发。</summary>
 public enum CircleSensitivity

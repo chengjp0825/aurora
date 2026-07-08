@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>触发器输入事件：由 RawInputSource 从底层鼠标钩子翻译而来。</summary>
 public sealed record TriggerEvent(

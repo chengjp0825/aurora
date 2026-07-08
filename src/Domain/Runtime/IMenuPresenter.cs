@@ -1,6 +1,6 @@
 using System;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>菜单表现层抽象：WakeOrchestrator 通过此接口控制 WPF 窗口。</summary>
 public interface IMenuPresenter

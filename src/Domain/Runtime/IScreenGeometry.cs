@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>多显示器几何抽象：让边界计算可测试。</summary>
 public interface IScreenGeometry

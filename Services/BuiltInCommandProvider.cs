@@ -1,7 +1,7 @@
 using System;
-using MyQuicker.Domain.Runtime.Commands;
+using Aurora.Domain.Runtime.Commands;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>注册不可变更的系统内建命令，确保 <see cref="CommandRegistry"/> 拥有稳定的 <code>sys:*</code> 命令。</summary>
 public static class BuiltInCommandProvider

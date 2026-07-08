@@ -4,11 +4,11 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Interop;
-using MyQuicker.Services;
+using Aurora.Domain.DTO;
+using Aurora.Interop;
+using Aurora.Services;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 设置中心：常规(唤醒键) / 动作管理 / 截屏与贴图 / 菜单 四页。

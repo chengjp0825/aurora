@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 轻量瞬时 toast 通知窗口：无框置顶、<c>ShowActivated=False</c> 不抢焦点、

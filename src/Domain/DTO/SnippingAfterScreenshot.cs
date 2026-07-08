@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>截图结算后的动作。</summary>
 public enum SnippingAfterScreenshot

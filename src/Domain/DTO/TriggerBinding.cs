@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.DTO;
+namespace Aurora.Domain.DTO;
 
 /// <summary>
 /// 触发器配置 DTO。仅包含纯静态标量与数据，

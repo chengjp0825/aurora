@@ -1,10 +1,10 @@
 using System;
 using System.Windows;
-using MyQuicker.Domain.Runtime;
-using DomainPoint = MyQuicker.Domain.Runtime.Point;
+using Aurora.Domain.Runtime;
+using DomainPoint = Aurora.Domain.Runtime.Point;
 using WpfPoint = System.Windows.Point;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 把 <see cref="MainWindow"/> 的命中测试适配为 <see cref="IOutsideClickSource"/>。

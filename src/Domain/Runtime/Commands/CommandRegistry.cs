@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace MyQuicker.Domain.Runtime.Commands;
+namespace Aurora.Domain.Runtime.Commands;
 
 /// <summary>
 /// 命令注册中心。维护命令 ID 到 <see cref="ICommand"/> 实例的 O(1) 映射。
-/// 由 <see cref="MyQuicker.Services.BuiltInCommandProvider"/> 与 <see cref="MyQuicker.Services.UserCommandStore"/> 在启动时填充。
+/// 由 <see cref="Aurora.Services.BuiltInCommandProvider"/> 与 <see cref="Aurora.Services.UserCommandStore"/> 在启动时填充。
 /// </summary>
 public sealed class CommandRegistry
 {

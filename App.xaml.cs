@@ -5,14 +5,14 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.Interop;
-using MyQuicker.Services;
-using MyQuicker.UI;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime;
+using Aurora.Interop;
+using Aurora.Services;
+using Aurora.UI;
 using Application = System.Windows.Application;
 
-namespace MyQuicker;
+namespace Aurora;
 
 /// <summary>
 /// Interaction logic for App.xaml
@@ -102,7 +102,7 @@ public partial class App : Application
             {
                 if (System.Windows.MessageBox.Show(
                         $"发现新版本 {info.Version}，是否立即更新？",
-                        "MyQuicker 更新", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                        "Aurora 更新", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     _ = checker.ApplyAsync(info);
                 }

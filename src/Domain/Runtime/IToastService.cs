@@ -1,4 +1,4 @@
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// Toast 通知 seam：把具体 UI 实现（WPF 窗口/系统通知）与调用方解耦。

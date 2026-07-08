@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security;
-using MyQuicker.Services;
+using Aurora.Services;
 
-namespace MyQuicker.Domain.Runtime.Commands;
+namespace Aurora.Domain.Runtime.Commands;
 
 /// <summary>启动本地应用程序的命令。</summary>
 public sealed class LaunchApplicationCommand : ICommand

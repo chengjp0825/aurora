@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using MyQuicker.Domain.Runtime;
+using Aurora.Domain.Runtime;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// <see cref="IScreenGeometry"/> 的 WinForms 实现。

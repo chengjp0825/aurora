@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime.Commands;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime.Commands;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 动作执行调度中心：根据 <see cref="ActionItem.CommandId"/> 从 <see cref="CommandRegistry"/> 中检索命令，

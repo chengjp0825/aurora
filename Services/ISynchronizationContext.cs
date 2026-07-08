@@ -1,4 +1,4 @@
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// 线程调度抽象：让核心服务（如 RawInputSource）无需引用 System.Windows。

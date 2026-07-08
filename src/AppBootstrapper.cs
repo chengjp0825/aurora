@@ -1,12 +1,12 @@
 using System;
 using System.Linq;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Domain.Runtime;
-using MyQuicker.Domain.Runtime.Commands;
-using MyQuicker.Services;
-using MyQuicker.UI;
+using Aurora.Domain.DTO;
+using Aurora.Domain.Runtime;
+using Aurora.Domain.Runtime.Commands;
+using Aurora.Services;
+using Aurora.UI;
 
-namespace MyQuicker;
+namespace Aurora;
 
 /// <summary>
 /// 应用程序最高拓扑装配中心（Composition Root）。

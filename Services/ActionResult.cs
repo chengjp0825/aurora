@@ -1,4 +1,4 @@
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// ActionExecutor 的纯数据执行结果。

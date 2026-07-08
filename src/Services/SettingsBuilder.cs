@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Interop;
+using Aurora.Domain.DTO;
+using Aurora.Interop;
 
-namespace MyQuicker.Services;
+namespace Aurora.Services;
 
 /// <summary>
 /// Constructs and validates a <see cref="Settings"/> DTO from raw UI values.

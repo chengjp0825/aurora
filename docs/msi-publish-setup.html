@@ -3,245 +3,360 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyQuicker MSI 安装包 + 自动更新配置</title>
+<title>aurora MSI 安装包 + 自动更新配置</title>
 <style>
-  :root {
-    --bg: #f7f8fa; --card: #fff; --border: #e3e6ea; --text: #1f2328;
-    --muted: #6b7280; --primary: #2563eb; --primary-bg: #eff6ff;
-    --green: #16a34a; --green-bg: #dcfce7; --amber: #d97706; --amber-bg: #fef3c7;
-    --red: #dc2626; --red-bg: #fee2e2; --code-bg: #1e1e2e; --code-text: #e0e0e0;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-  header { background: linear-gradient(135deg, #0f766e, #2563eb); color: #fff; padding: 28px 24px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  header h1 { margin: 0 0 6px; font-size: 22px; }
-  header p { margin: 0; opacity: 0.92; font-size: 13px; }
-  nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 24px; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 72px; z-index: 9; }
-  nav a { text-decoration: none; color: var(--muted); font-size: 12px; padding: 4px 9px; border-radius: 4px; white-space: nowrap; }
-  nav a:hover { background: var(--primary-bg); color: var(--primary); }
-  main { max-width: 1080px; margin: 0 auto; padding: 20px; }
-  section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 22px; margin-bottom: 18px; }
-  h2 { font-size: 19px; margin: 0 0 14px; padding-bottom: 7px; border-bottom: 2px solid var(--primary); color: #0f766e; }
-  h3 { font-size: 15px; margin: 18px 0 9px; color: #1e40af; }
-  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
-  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
-  th { background: #f1f5f9; font-weight: 600; }
-  tr:nth-child(even) td { background: #fafbfc; }
-  code { background: #eef2f7; color: #be185d; padding: 1px 5px; border-radius: 3px; font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
-  pre { background: var(--code-bg); color: var(--code-text); padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; line-height: 1.5; }
-  pre code { background: transparent; color: inherit; padding: 0; }
-  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 4px; }
-  .rec { background: var(--green-bg); color: var(--green); }
-  .warn { background: var(--amber-bg); color: var(--amber); }
-  .bad { background: var(--red-bg); color: var(--red); }
-  .info { background: var(--primary-bg); color: var(--primary); }
-  .callout { border-left: 4px solid var(--primary); background: var(--primary-bg); padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
-  .callout.warn { border-color: var(--amber); background: var(--amber-bg); }
-  .callout.bad { border-color: var(--red); background: var(--red-bg); }
-  .callout.good { border-color: var(--green); background: var(--green-bg); }
-  .checklist { list-style: none; padding-left: 0; }
-  .checklist li { padding: 4px 0 4px 26px; position: relative; font-size: 13px; }
-  .checklist li::before { content: "☐"; position: absolute; left: 4px; color: var(--muted); }
-  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; font-size: 13px; }
-  .flow span { background: var(--primary-bg); color: var(--primary); padding: 4px 10px; border-radius: 4px; }
-  .flow .arrow { color: var(--muted); }
+  body{font-family:-apple-system,"Segoe UI",sans-serif;max-width:960px;margin:2em auto;padding:0 1em;line-height:1.65;color:#24292f;background:#fff}
+  h1{font-size:1.75em;border-bottom:2px solid #d0d7de;padding-bottom:.3em;margin-bottom:.5em}
+  h2{font-size:1.35em;border-bottom:1px solid #d8dee4;padding-bottom:.25em;margin-top:2em}
+  h3{font-size:1.12em;margin-top:1.5em}
+  p{margin:.6em 0}
+  pre{background:#f6f8fa;padding:1em;border-radius:6px;overflow-x:auto;font-size:.86em;line-height:1.5;border:1px solid #d8dee4}
+  code{background:#f6f8fa;padding:.15em .35em;border-radius:4px;font-size:.9em;font-family:"Cascadia Code",Consolas,monospace}
+  pre code{background:none;padding:0;border:none;font-size:1em}
+  table{border-collapse:collapse;margin:1em 0;width:100%}
+  th,td{border:1px solid #d0d7de;padding:.5em .8em;text-align:left;vertical-align:top}
+  th{background:#f6f8fa;font-weight:600}
+  blockquote{border-left:4px solid #dfe2e5;padding:.3em 1em;margin:1em 0;color:#57606a;background:#fafbfc;border-radius:0 4px 4px 0}
+  blockquote.callout{border-left-color:#2da44e;background:#f6fef9}
+  blockquote.warn{border-left-color:#d29922;background:#fffdf0}
+  hr{border:none;border-top:1px solid #d0d7de;margin:2em 0}
+  a{color:#0969da;text-decoration:none}
+  a:hover{text-decoration:underline}
+  ul,ol{padding-left:1.5em}
+  li{margin:.25em 0}
+  .checkbox{list-style:none;padding-left:.2em}
+  .checkbox li::before{content:"☐ ";color:#57606a}
+  .meta{color:#57606a;font-size:.9em}
 </style>
 </head>
 <body>
-<header>
-  <h1>MyQuicker MSI 安装包 + 自动更新配置</h1>
-  <p>WiX Toolset v4 生成 PerUser MSI（无需 UAC）+ 应用内检查 GitHub Releases 静默升级</p>
-</header>
-<nav>
-  <a href="#s1">前置</a>
-  <a href="#s2">MSI 配置</a>
-  <a href="#s3">构建脚本</a>
-  <a href="#s4">自动更新</a>
-  <a href="#s5">CI</a>
-  <a href="#s6">版本号</a>
-  <a href="#s7">升级流程</a>
-  <a href="#s8">测试清单</a>
-  <a href="#s9">增强</a>
-</nav>
-<main>
+
+<h1>aurora MSI 安装包 + 自动更新配置</h1>
+
+<blockquote>
+<p>方案：WiX Toolset v4 生成 PerUser MSI（无需 UAC，装到 LocalAppData）+ 应用内检查 GitHub Releases，下载新 MSI 用 <code>msiexec</code> 静默升级。</p>
+<p><strong>权威实现以仓库文件为准</strong>：<code>installer/aurora.wxs</code>、<code>installer/build-msi.ps1</code>、<code>src/Services/UpdateChecker.cs</code>、<code>.github/workflows/release.yml</code>。本文档只做方案说明与原理拆解，示例代码与权威实现保持一致；如发现本文与上述文件冲突，以文件为准。</p>
+<p>MSI 的 <code>MajorUpgrade</code> 允许新版本覆盖旧版本，实现"装新即升级"；<code>RegistrySearch</code> 路径自愈确保升级时用户自定义安装路径不丢失。</p>
+</blockquote>
+
+<hr>
 
 <section id="s1">
 <h2>1. 前置：WiX Toolset v4</h2>
-<p>WiX v4 以 dotnet tool 分发，本地与 CI 一致：</p>
-<pre><code>dotnet tool install -g wix
-wix --version</code></pre>
-<p>文档：<code>https://wixtoolset.org/docs/v4/</code></p>
+<p>WiX v4 以 <code>dotnet tool</code> 形式分发，本地与 CI 一致（锁版本 <code>4.0.5</code>，v7 引入 OSMF EULA，个人项目用 v4）。</p>
+<pre><code>dotnet tool install -g wix --version 4.0.5
+wix extension add WixToolset.UI.wixext/4.0.5   # WixUI_InstallDir 目录选择向导</code></pre>
+<blockquote><p>WiX v4 文档：<a href="https://wixtoolset.org/docs/v4/">https://wixtoolset.org/docs/v4/</a></p></blockquote>
 </section>
 
+<hr>
+
 <section id="s2">
-<h2>2. MSI 配置：installer/MyQuicker.wxs</h2>
+<h2>2. MSI 配置：<code>installer/aurora.wxs</code></h2>
 <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"&gt;
 
   &lt;Package
-    Name="MyQuicker"
-    Language="2052" Codepage="936"
+    Name="aurora"
+    Language="2052"
+    Codepage="936"
     Version="$(var.Version)"
-    Manufacturer="your-name"
-    UpgradeCode="8F2C4D6E-1234-5678-9ABC-DEF012345678"
-    InstallScope="perUser" InstallPrivileges="limited"&gt;
+    Manufacturer="aurora"
+    UpgradeCode="71AB04B5-95B5-4006-9AAF-962F6672A7E9"
+    Scope="perUser"&gt;
 
-    &lt;MajorUpgrade AllowSameVersion="yes"
-      DowngradeErrorMessage="已安装更新版本，无法降级。" /&gt;
+    &lt;!-- 允许新版本覆盖旧版本（升级）；阻止降级。未设 AllowSameVersion → 同版本不属升级范围 --&gt;
+    &lt;MajorUpgrade
+      DowngradeErrorMessage="已安装更新版本的 aurora，无法降级。" /&gt;
 
-    &lt;Media Id="1" Cabinet="MyQuicker.cab" EmbedCab="yes" /&gt;
+    &lt;!-- 路径自愈：升级/静默安装前，AppSearch 从 HKCU\Software\aurora\InstallPath 捞回上一次
+         安装目录，绑定给 INSTALLFOLDER 属性。同名 Property 在 CostInitialize 前覆盖 Directory
+         默认值，确保 MajorUpgrade 覆盖时路径恒定、用户自定义路径不丢失。
+         Type="directory"：旧路径目录不存在时置空，回退默认，避免装到无效路径。 --&gt;
+    &lt;Property Id="INSTALLFOLDER"&gt;
+      &lt;RegistrySearch Id="SearchInstallPath"
+        Root="HKCU" Key="Software\aurora" Name="InstallPath"
+        Type="directory" /&gt;
+    &lt;/Property&gt;
+
+    &lt;!-- 卸载/升级前强制关闭正在运行的 aurora.exe，避免文件占用（ACCESS_DENIED） --&gt;
+    &lt;CustomAction Id="SetTaskkillPath" Property="TASKKILL_EXE" Value="[System64Folder]taskkill.exe" Execute="immediate" /&gt;
+    &lt;CustomAction Id="KillAurora" Property="TASKKILL_EXE" ExeCommand="/f /im aurora.exe" Execute="immediate" Return="ignore" /&gt;
+
+    &lt;!-- 纯卸载（非升级）时清理运行时生成的用户数据；升级时 UPGRADINGPRODUCTCODE 被设置，跳过以保留设置 --&gt;
+    &lt;CustomAction Id="SetCmdPath" Property="CMD_EXE" Value="[System64Folder]cmd.exe" Execute="immediate" /&gt;
+    &lt;CustomAction Id="CleanupRuntimeFiles" Property="CMD_EXE"
+      ExeCommand='/c cd /d "[INSTALLFOLDER]" &amp;amp;&amp;amp; del /q /f "settings.json" "settings.json.tmp" "debug.log" "appsettings.json" 2&gt;nul'
+      Execute="immediate" Return="ignore" /&gt;
+
+    &lt;InstallExecuteSequence&gt;
+      &lt;!-- 时序（先杀后清）：KillAurora 先强杀进程释放句柄，CleanupRuntimeFiles 链在其后，
+           确保纯卸载时 del 不因文件占用失败、0 字节残留。 --&gt;
+      &lt;Custom Action="SetTaskkillPath" Before="KillAurora" /&gt;
+      &lt;Custom Action="KillAurora" After="InstallValidate" /&gt;
+      &lt;Custom Action="SetCmdPath" After="KillAurora" /&gt;
+      &lt;Custom Action="CleanupRuntimeFiles" After="SetCmdPath" Condition="REMOVE=&amp;quot;ALL&amp;quot; AND NOT UPGRADINGPRODUCTCODE" /&gt;
+    &lt;/InstallExecuteSequence&gt;
+
+    &lt;Media Id="1" Cabinet="aurora.cab" EmbedCab="yes" /&gt;
 
     &lt;Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" /&gt;
     &lt;ui:WixUI Id="WixUI_InstallDir" /&gt;
-    &lt;ui:WixUIRef Id="WixUI_ErrorProgressText" /&gt;
 
-    &lt;Feature Id="Complete" Title="MyQuicker" Level="1"&gt;
+    &lt;Feature Id="Complete" Title="aurora" Level="1"&gt;
+      &lt;ComponentGroupRef Id="HarvestComponents" /&gt;
       &lt;ComponentGroupRef Id="ProductComponents" /&gt;
+      &lt;ComponentGroupRef Id="StartMenuShortcuts" /&gt;
     &lt;/Feature&gt;
   &lt;/Package&gt;
 
   &lt;Fragment&gt;
+    &lt;!-- PerUser：装到 %LocalAppData%\aurora，无需管理员 --&gt;
     &lt;StandardDirectory Id="LocalAppDataFolder"&gt;
-      &lt;Directory Id="INSTALLFOLDER" Name="MyQuicker" /&gt;
+      &lt;Directory Id="INSTALLFOLDER" Name="aurora" /&gt;
     &lt;/StandardDirectory&gt;
   &lt;/Fragment&gt;
 
   &lt;Fragment&gt;
     &lt;ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER"&gt;
-      &lt;Component Id="MainExe" Guid="A1B2C3D4-1111-2222-3333-444455556666"&gt;
-        &lt;File Id="MyQuickerExe" Source="$(var.PublishDir)MyQuicker.exe" KeyPath="yes" /&gt;
+      &lt;!-- 持久化安装路径，供下次升级 RegistrySearch 读取（路径自愈） --&gt;
+      &lt;Component Id="InstallPathReg" Guid="8F5C83D2-6EDE-4D8A-991C-A5D69621F783"&gt;
+        &lt;RegistryValue Root="HKCU" Key="Software\aurora" Name="InstallPath"
+          Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" /&gt;
       &lt;/Component&gt;
-      &lt;Component Id="AutostartReg" Guid="A1B2C3D4-7777-8888-9999-AAAABBBBCCCC"&gt;
-        &lt;RegistryValue Root="HKCU"
-          Key="Software\Microsoft\Windows\CurrentVersion\Run"
-          Name="MyQuicker" Value="[INSTALLFOLDER]MyQuicker.exe"
-          Type="string" KeyPath="yes" /&gt;
+      &lt;!-- 开机自启：写 HKCU Run 键 --&gt;
+      &lt;Component Id="AutostartReg" Guid="C5487722-B855-4319-82F2-31E7764F6988"&gt;
+        &lt;RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run"
+          Name="aurora" Value="[INSTALLFOLDER]aurora.exe" Type="string" KeyPath="yes" /&gt;
       &lt;/Component&gt;
-      &lt;Component Id="StartMenuShortcut" Guid="A1B2C3D4-DDDD-EEEE-FFFF-111122223333"&gt;
-        &lt;Shortcut Id="StartMenuShortcut" Name="MyQuicker"
-          Target="[INSTALLFOLDER]MyQuicker.exe" WorkingDirectory="INSTALLFOLDER" /&gt;
-        &lt;RegistryValue Root="HKCU" Key="Software\MyQuicker" Name="Shortcut"
+      &lt;!-- 卸载快捷方式：调 msiexec /x [ProductCode] --&gt;
+      &lt;Component Id="UninstallShortcut" Guid="45515FEA-8379-4644-BA25-E1199A8558A1"&gt;
+        &lt;Shortcut Id="UninstallShortcut" Name="卸载 aurora" Description="卸载 aurora"
+          Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]"
+          WorkingDirectory="INSTALLFOLDER" /&gt;
+        &lt;RegistryValue Root="HKCU" Key="Software\aurora" Name="UninstallShortcut"
+          Type="string" Value="1" KeyPath="yes" /&gt;
+      &lt;/Component&gt;
+    &lt;/ComponentGroup&gt;
+  &lt;/Fragment&gt;
+
+  &lt;!-- 开始菜单快捷方式（独立目录） --&gt;
+  &lt;Fragment&gt;
+    &lt;StandardDirectory Id="ProgramMenuFolder"&gt;
+      &lt;Directory Id="StartMenuAuroraDir" Name="aurora" /&gt;
+    &lt;/StandardDirectory&gt;
+  &lt;/Fragment&gt;
+  &lt;Fragment&gt;
+    &lt;ComponentGroup Id="StartMenuShortcuts" Directory="StartMenuAuroraDir"&gt;
+      &lt;Component Id="StartMenuShortcut" Guid="69A0868A-11E5-454C-B991-B3E94DE733C4"&gt;
+        &lt;Shortcut Id="StartMenuShortcut" Name="aurora"
+          Target="[INSTALLFOLDER]aurora.exe" WorkingDirectory="INSTALLFOLDER" /&gt;
+        &lt;RegistryValue Root="HKCU" Key="Software\aurora" Name="Shortcut"
           Type="string" Value="1" KeyPath="yes" /&gt;
       &lt;/Component&gt;
     &lt;/ComponentGroup&gt;
   &lt;/Fragment&gt;
 &lt;/Wix&gt;</code></pre>
-<h3>关键元素</h3>
+
+<h3>关键元素说明</h3>
 <table>
-<tr><th>元素</th><th>作用</th></tr>
-<tr><td><code>UpgradeCode</code></td><td><b>固定不变</b>的 GUID，标识产品族，升级靠它匹配旧版本</td></tr>
-<tr><td><code>Version</code></td><td>MSI 三段版本，由构建脚本注入</td></tr>
-<tr><td><code>InstallScope="perUser"</code></td><td>装到用户目录，无需 UAC</td></tr>
-<tr><td><code>MajorUpgrade</code></td><td>新版本覆盖旧版本</td></tr>
-<tr><td><code>LocalAppDataFolder</code></td><td>PerUser 安装位置</td></tr>
-<tr><td><code>AutostartReg</code></td><td>HKCU Run 键开机自启</td></tr>
-<tr><td><code>ui:WixUI</code></td><td>安装向导含目录选择</td></tr>
+<thead><tr><th>元素</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><code>UpgradeCode</code></td><td><strong>固定不变</strong>的 GUID（<code>71AB04B5-...</code>），标识同一产品族，升级靠它匹配旧版本。一旦发布永不更改</td></tr>
+<tr><td><code>Version="$(var.Version)"</code></td><td>MSI 三段版本（如 <code>1.0.0</code>），由构建脚本注入</td></tr>
+<tr><td><code>Scope="perUser"</code></td><td>装到用户目录，无需 UAC（WiX v4 用 <code>Scope</code>，非 v3 的 <code>InstallScope</code>+<code>InstallPrivileges</code>）</td></tr>
+<tr><td><code>MajorUpgrade</code></td><td>新版本覆盖旧版本；未设 <code>AllowSameVersion</code>（同版本不属升级范围）；<code>DowngradeErrorMessage</code> 阻降级</td></tr>
+<tr><td><code>Property INSTALLFOLDER</code> + <code>RegistrySearch</code></td><td><strong>路径自愈</strong>：升级前从注册表捞回旧安装路径，绑定给 INSTALLFOLDER</td></tr>
+<tr><td><code>InstallPathReg</code> Component</td><td>持久化 <code>[INSTALLFOLDER]</code> 到 <code>HKCU\Software\aurora\InstallPath</code>，供下次升级读取</td></tr>
+<tr><td><code>KillAurora</code> CustomAction</td><td><code>taskkill /f /im aurora.exe</code> 强杀残留进程，<code>Return="ignore"</code> 吞错</td></tr>
+<tr><td><code>CleanupRuntimeFiles</code> CustomAction</td><td>纯卸载时清理运行时文件，条件 <code>REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</code></td></tr>
+<tr><td><code>HarvestComponents</code></td><td>由 <code>build-msi.ps1</code> 脚本 harvest <code>publish/</code> 生成（~241 文件 + zh-Hans），<code>Guid="*"</code> 自动派生</td></tr>
+<tr><td><code>ui:WixUI Id="WixUI_InstallDir"</code></td><td>安装向导含目录选择，<code>WIXUI_INSTALLDIR</code> 指向 <code>INSTALLFOLDER</code></td></tr>
+</tbody>
 </table>
-<div class="callout warn"><b>⚠️ 3 个 Component GUID 和 UpgradeCode 必须替换为真实 GUID</b>（<code>uuidgen</code> 或 VS 工具）。UpgradeCode 一旦发布永不更改。</div>
+
+<blockquote><p>Component GUID 均为已生成的真实 GUID（见 <code>installer/aurora.wxs</code>），勿再替换。</p></blockquote>
+
+<h3>安装后目录结构（默认路径）</h3>
+<p><strong>安装位置</strong>：默认 <code>%LocalAppData%\aurora\</code>，用户可在安装向导的目录选择步改为任意路径（<code>WixUI_InstallDir</code>）。PerUser 下选需管理员的目录（如 <code>C:\Program Files\</code>）会因无 UAC 提升而失败。</p>
+<pre><code>%LocalAppData%\aurora\
+├── aurora.exe                       ← 主程序（WinExe，Release 无控制台）
+├── aurora.dll                       ← 应用主体程序集
+├── aurora.deps.json                 ← 依赖描述
+├── aurora.runtimeconfig.json        ← 运行时配置
+├── coreclr.dll / clrjit.dll /       ┐
+│   clrgc.dll / hostfxr.dll /        │ .NET 8 运行时（self-contained，免装 Runtime）
+│   hostpolicy.dll / ...             │
+├── PresentationFramework.dll /      │ WPF 框架
+│   PresentationCore.dll / ...       │
+├── System.Windows.Forms.*.dll       │ WinForms（仅 Screen / NotifyIcon 用）
+├── System.*.dll / Microsoft.*.dll   ┘ BCL + 框架库（根目录共约 241 个文件）
+└── zh-Hans\        ← 仅简中卫星资源（17 个 *.resources.dll）</code></pre>
+<p><code>build-msi.ps1</code> 采用 <strong>self-contained 展开式</strong>：<code>--self-contained true</code> 把 .NET Runtime / WPF / WinForms / BCL 全部随包输出，用户机器无需预装 .NET Runtime，开箱即用；每个 dll 独立可见。MSI 体积约 54 MB。</p>
+<ul>
+<li>语言包：<code>SatelliteResourceLanguages=zh-Hans</code> 仅保留简中，其余 12 种语言目录不输出。</li>
+<li><code>createdump.exe</code>（.NET 崩溃诊断工具）在 publish 后删除，不进安装目录。</li>
+</ul>
+<p><strong>安装时附带的非文件项</strong>：</p>
+<table>
+<thead><tr><th>项</th><th>位置</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td>安装路径键</td><td><code>HKCU\Software\aurora\InstallPath = [INSTALLFOLDER]</code></td><td>路径自愈（升级时 RegistrySearch 读取）</td></tr>
+<tr><td>开机自启键</td><td><code>HKCU\…\Run\aurora = [INSTALLFOLDER]aurora.exe</code></td><td>登录自启</td></tr>
+<tr><td>开始菜单快捷方式</td><td><code>…\Start Menu\Programs\aurora\aurora.lnk</code></td><td>指向 aurora.exe</td></tr>
+<tr><td>卸载快捷方式</td><td>安装目录内 <code>卸载 aurora.lnk</code></td><td>调 <code>msiexec /x [ProductCode]</code></td></tr>
+<tr><td>控制面板条目</td><td>程序和功能</td><td>标准 MSI 卸载入口</td></tr>
+</tbody>
+</table>
+<p>自启键、路径键与快捷方式均用 <code>[INSTALLFOLDER]aurora.exe</code> 引用，用户改安装目录后自动跟随，不写死路径。</p>
+<p><strong>运行时生成（不在 MSI 内）</strong>：<code>settings.json</code>（首次启动由 <code>SettingsManager</code> 在 exe 同目录生成）、<code>settings.json.tmp</code>（原子写临时文件）、<code>debug.log</code>（仅 Debug 配置生成，Release 不产生）、旧版 <code>appsettings.json</code>。这些运行时文件<strong>纯卸载时由 <code>CleanupRuntimeFiles</code> CustomAction 自动清理</strong>（条件 <code>REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</code>）；<strong>升级时保留</strong>，以延续用户设置（见 §7）。</p>
+<blockquote class="callout"><p>✅ <strong>升级路径已自愈</strong>：<code>UpdateChecker</code> 走 <code>msiexec /i … /qb</code> 静默升级时，MSI 的 <code>RegistrySearch</code> 会先从 <code>HKCU\Software\aurora\InstallPath</code> 捞回上一次安装路径并绑定给 <code>INSTALLFOLDER</code>，用户自定义路径不再丢失。</p></blockquote>
 </section>
+
+<hr>
 
 <section id="s3">
-<h2>3. 构建脚本：installer/build-msi.ps1</h2>
-<pre><code>param([string]$Version = "1.0.0")
+<h2>3. 构建脚本：<code>installer/build-msi.ps1</code></h2>
+<pre><code># Build aurora MSI installer (PerUser, self-contained, expanded file structure).
+# Usage: ./installer/build-msi.ps1 -Version 1.0.0
+param([string]$Version = "1.0.0")
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$publishDir = "$root/publish"
 
-# 1. 发布单文件 exe
-dotnet publish "$root/MyQuicker.csproj" -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true `
-  -o "$root/publish"
+# 1. Publish self-contained expanded（展开式：每个 dll 独立可见，免装 .NET Runtime）
+#    - SatelliteResourceLanguages=zh-Hans：只保留简中卫星资源
+#    - 先清空 publish 目录，避免上次构建产物残留被 harvest 打进新 MSI
+if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
+dotnet publish "$root/aurora.csproj" -c Release -r win-x64 --self-contained true `
+  -p:PublishReadyToRun=true `
+  -p:SatelliteResourceLanguages=zh-Hans `
+  -o $publishDir
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+Remove-Item "$publishDir/createdump.exe" -Force -ErrorAction SilentlyContinue
 
-# 2. 确保 wix 工具
-if ((dotnet tool list -g) -notmatch '\bwix\b') { dotnet tool install -g wix }
+# 2. Ensure wix tool + UI extension (v4.0.5)
+if ((dotnet tool list -g) -notmatch '\bwix\b') { dotnet tool install -g wix --version 4.0.5 }
+if ((wix extension list) -notmatch 'WixToolset\.UI\.wixext\s+4\.0\.5') { wix extension add WixToolset.UI.wixext/4.0.5 }
 
-# 3. 构建 MSI（需 UI 扩展）
-wix build "$root/installer/MyQuicker.wxs" `
-  -o "$root/publish/MyQuicker-$Version.msi" `
-  -d "Version=$Version" -d "PublishDir=$root/publish/" `
+# 3. Harvest publish directory into harvest.wxs (wix v4 has no heat command)
+#    每个 File 一个 Component，Guid="*"（WiX 按路径派生稳定 GUID）
+$rootPath = (Resolve-Path $publishDir).Path
+$files = Get-ChildItem $publishDir -Recurse -File
+# …（遍历生成 harvest.wxs，详见 installer/build-msi.ps1 原文）
+
+# 4. Build MSI (PerUser, WixUI_InstallDir directory picker)
+wix build "$root/installer/aurora.wxs" "$root/installer/harvest.wxs" `
+  -o "$publishDir/aurora-$Version.msi" `
+  -d "Version=$Version" -d "PublishDir=$publishDir/" `
   -ext WixToolset.UI.wixext
+if ($LASTEXITCODE -ne 0) { throw "wix build failed" }
 
-# 4. 校验
-$hash = (Get-FileHash "$root/publish/MyQuicker-$Version.msi" -Algorithm SHA256).Hash
-"$hash  MyQuicker-$Version.msi" | Out-File "$root/publish/MyQuicker-$Version.msi.sha256"
-Write-Host "MSI: publish/MyQuicker-$Version.msi"</code></pre>
-<p>本地用法：<code>./installer/build-msi.ps1 -Version 1.0.0</code></p>
+# 5. Checksum
+$msi = "$publishDir/aurora-$Version.msi"
+$hash = (Get-FileHash $msi -Algorithm SHA256).Hash
+"$hash  aurora-$Version.msi" | Out-File "$msi.sha256" -Encoding ascii</code></pre>
+<p>本地用法：<code>./installer/build-msi.ps1 -Version 1.0.0</code>。harvest 步骤的完整 PS 脚本见 <code>installer/build-msi.ps1</code>（WiX v4 取消了 <code>heat</code> 命令，改用脚本遍历 <code>publish/</code> 生成 <code>harvest.wxs</code>，该文件被 <code>.gitignore</code> 忽略，每次构建重新生成）。</p>
 </section>
 
+<hr>
+
 <section id="s4">
-<h2>4. 自动更新：src/Services/UpdateChecker.cs</h2>
-<p>应用内检查 GitHub Releases，发现新版下载 MSI 用 <code>msiexec</code> 静默安装。</p>
-<pre><code>public sealed class UpdateChecker
+<h2>4. 自动更新：<code>src/Services/UpdateChecker.cs</code></h2>
+<p>应用内检查 GitHub Releases，发现新版则下载 MSI 并 <code>msiexec</code> 静默安装（依赖第 2 节的 <code>MajorUpgrade</code> 覆盖升级 + <code>RegistrySearch</code> 路径自愈）。</p>
+<pre><code>namespace Aurora.Services;   // 源码命名空间 Aurora.*（PascalCase），发布元数据 aurora（lowercase）
+
+public sealed class UpdateChecker
 {
+    // 真实发布仓库地址（owner/repo = chengjp0825/aurora）；与 CI 产物 aurora-&lt;v&gt;.msi 命名一致。
     private const string ReleasesUrl =
-        "https://api.github.com/repos/your-name/MyQuicker/releases/latest";
-    private static readonly HttpClient _http = new();
+        "https://api.github.com/repos/chengjp0825/aurora/releases/latest";
+
+    private static readonly HttpClient _http = new HttpClient();
 
     public async Task&lt;UpdateInfo?&gt; CheckAsync()
     {
-        var current = Assembly.GetExecutingAssembly().GetName().Version ?? new(0,0,0);
+        var current = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);
         var req = new HttpRequestMessage(HttpMethod.Get, ReleasesUrl);
-        req.Headers.UserAgent.ParseAdd("MyQuicker-Updater");
+        req.Headers.UserAgent.ParseAdd("aurora-Updater");   // UA 与应用名对齐
         using var resp = await _http.SendAsync(req).ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
-        var root = doc.RootElement;
-        var latest = ParseTag(root.GetProperty("tag_name").GetString());
+        var tag = doc.RootElement.GetProperty("tag_name").GetString(); // "v1.0.0"
+        var latest = ParseTag(tag);
         if (latest &lt;= current) return null;
 
         string? msiUrl = null;
-        foreach (var a in root.GetProperty("assets").EnumerateArray())
+        foreach (var asset in doc.RootElement.GetProperty("assets").EnumerateArray())
         {
-            var name = a.GetProperty("name").GetString();
-            if (name?.EndsWith(".msi", StringComparison.OrdinalIgnoreCase) == true)
-            { msiUrl = a.GetProperty("browser_download_url").GetString(); break; }
+            var name = asset.GetProperty("name").GetString();
+            if (name is not null &amp;&amp; name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            { msiUrl = asset.GetProperty("browser_download_url").GetString(); break; }
         }
         return msiUrl is null ? null : new UpdateInfo(latest, msiUrl);
     }
 
     public async Task ApplyAsync(UpdateInfo info)
     {
-        var tmp = Path.Combine(Path.GetTempPath(), $"MyQuicker-{info.Version}.msi");
+        // 临时文件名与 aurora 对齐
+        var tmpMsi = Path.Combine(Path.GetTempPath(), $"aurora-{info.Version}.msi");
         using var resp = await _http.GetAsync(info.MsiUrl).ConfigureAwait(false);
-        await using var fs = File.Create(tmp);
+        resp.EnsureSuccessStatusCode();
+        await using var fs = File.Create(tmpMsi);
         await resp.Content.CopyToAsync(fs).ConfigureAwait(false);
 
-        // 先退出当前进程，再静默安装（避免 exe 锁文件）
-        Process.Start(new ProcessStartInfo("msiexec", $"/i \"{tmp}\" /qb /norestart")
-            { UseShellExecute = false });
+        // 先启动 msiexec 再立即退出当前进程，让出 exe 文件锁；
+        // MSI 侧 KillAurora CustomAction（taskkill /f /im aurora.exe）兜底强杀残留。
+        // /qb = 基本 UI（进度条）；/norestart = 不重启系统；MajorUpgrade 覆盖旧版本。
+        // 路径自愈：MSI 的 RegistrySearch 自动捞回旧 INSTALLFOLDER，无需在此传参。
+        Process.Start(new ProcessStartInfo("msiexec", $"/i \"{tmpMsi}\" /qb /norestart")
+        { UseShellExecute = false });
         Environment.Exit(0);
     }
 
-    static Version ParseTag(string? tag) =&gt;
-        Version.TryParse((tag ?? "0.0.0").TrimStart('v','V'), out var v) ? v : new(0,0,0);
+    private static Version ParseTag(string? tag)
+    {
+        var s = (tag ?? "0.0.0").TrimStart('v', 'V');
+        return Version.TryParse(s, out var v) ? v : new Version(0, 0, 0);
+    }
 }
+
 public sealed record UpdateInfo(Version Version, string MsiUrl);</code></pre>
-<h3>集成到 App.OnStartup（后台非阻塞，仅 Release）</h3>
+<blockquote><p><code>ApplyAsync</code> 仅负责网络与安装；UI 提示（弹框）由 <code>App.OnStartup</code> 调用方处理，避免 Services 层引用 WPF。</p></blockquote>
+
+<h3>集成到 <code>App.OnStartup</code>（后台非阻塞，仅 Release）</h3>
 <pre><code>#if !DEBUG
     _ = CheckForUpdatesAsync();
 #endif
 
 private async Task CheckForUpdatesAsync()
 {
-    try {
-        var checker = new UpdateChecker();
-        var info = await checker.CheckAsync().ConfigureAwait(false);
+    try
+    {
+        var info = await new UpdateChecker().CheckAsync().ConfigureAwait(false);
         if (info is null) return;
-        await Dispatcher.InvokeAsync(() =&gt; {
-            if (MessageBox.Show($"发现新版本 {info.Version}，是否立即更新？",
-                "MyQuicker 更新", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                _ = checker.ApplyAsync(info);
+        await Dispatcher.InvokeAsync(() =&gt;
+        {
+            if (System.Windows.MessageBox.Show(
+                    $"发现新版本 {info.Version}，是否立即更新？",
+                    "aurora 更新", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            {
+                _ = new UpdateChecker().ApplyAsync(info);
+            }
         });
-    } catch (Exception ex) { Debug.WriteLine($"[Update] {ex.Message}"); }
+    }
+    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Update] check failed: {ex.Message}"); }
 }</code></pre>
-<div class="callout good"><b>更新流程：</b>启动后台查 → 有新版弹框 → 用户同意 → 下载 MSI → 先退出旧进程 → msiexec 静默覆盖安装（MajorUpgrade）→ 新版自启。</div>
+<blockquote><p>更新流程：启动后台查 → 有新版弹框 → 用户同意 → 下载 MSI → 当前进程 <code>Environment.Exit(0)</code> → <code>msiexec /qb</code> 静默覆盖安装 → <code>KillAurora</code> 兜底杀残留 → <code>MajorUpgrade</code> 替换旧版本（路径自愈保留安装目录，<code>settings.json</code> 保留）→ 新版自启。</p></blockquote>
 </section>
 
+<hr>
+
 <section id="s5">
-<h2>5. CI：.github/workflows/release.yml</h2>
-<p>tag 推送触发：测试 → 发布 exe → WiX 打包 MSI → 上传 Release。</p>
+<h2>5. CI：<code>.github/workflows/release.yml</code></h2>
+<p>tag 推送触发：构建 → 测试 → 发布 exe（展开式）→ harvest → WiX 打包 MSI → 上传 Release。</p>
 <pre><code>name: Release
 on:
   push:
@@ -253,26 +368,48 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with: { dotnet-version: '8.0.x' }
 
-      - name: Build &amp; Test
+      - name: Build
+        run: dotnet build --configuration Release
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+      - name: Publish exe (expanded, self-contained)
+        run: &gt;-
+          dotnet publish aurora.csproj -c Release -r win-x64
+          --self-contained true
+          -p:PublishReadyToRun=true
+          -p:SatelliteResourceLanguages=zh-Hans
+          -o publish
+
+      - name: Install WiX v4 + UI extension
+        shell: pwsh
         run: |
-          dotnet build --configuration Release
-          dotnet test --configuration Release --no-build
+          dotnet tool install -g wix --version 4.0.5
+          wix extension add WixToolset.UI.wixext/4.0.5
 
-      - name: Publish exe
-        run: dotnet publish MyQuicker.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true -o publish
-
-      - name: Install WiX
-        run: dotnet tool install -g wix
+      - name: Harvest publish directory
+        shell: pwsh
+        run: |
+          # 遍历 publish/ 生成 installer/harvest.wxs（与 build-msi.ps1 同逻辑）
+          # 详见 .github/workflows/release.yml 原文
 
       - name: Build MSI
+        shell: pwsh
         run: |
           $v = "${{ github.ref_name }}".TrimStart('v')
-          wix build installer/MyQuicker.wxs -o "publish/MyQuicker-$v.msi" -d "Version=$v" -d "PublishDir=publish/" -ext WixToolset.UI.wixext
-          $h = (Get-FileHash "publish/MyQuicker-$v.msi" -Algorithm SHA256).Hash
-          "$h  MyQuicker-$v.msi" | Out-File "publish/MyQuicker-$v.msi.sha256"
+          if ([string]::IsNullOrWhiteSpace($v) -or $v -eq '${{ github.ref_name }}') { $v = "0.0.0" }
+          wix build installer/aurora.wxs installer/harvest.wxs -o "publish/aurora-$v.msi" `
+            -d "Version=$v" -d "PublishDir=$PWD/publish/" -ext WixToolset.UI.wixext
+          $h = (Get-FileHash "publish/aurora-$v.msi" -Algorithm SHA256).Hash
+          "$h  aurora-$v.msi" | Out-File "publish/aurora-$v.msi.sha256" -Encoding ascii
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with: { name: aurora-msi, path: publish/*.msi* }
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -281,65 +418,117 @@ jobs:
           files: |
             publish/*.msi
             publish/*.msi.sha256</code></pre>
-<div class="callout">发布：<code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code> → CI 自动构建 MSI 发到 GitHub Releases → 用户应用启动自动检测升级。</div>
+<p>发布流程：<code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code> → CI 自动构建 MSI 并发布到 GitHub Releases → 用户应用启动时检测到新版本自动升级。完整 harvest 步骤见 <code>.github/workflows/release.yml</code>。</p>
 </section>
+
+<hr>
 
 <section id="s6">
 <h2>6. 版本号管理</h2>
-<p>MSI <code>ProductVersion</code> 只支持三段，与 csproj 对齐：</p>
+<p>MSI <code>ProductVersion</code> 只支持三段（<code>Major.Minor.Build</code>），与 csproj 的 <code>VersionPrefix</code> 对齐。</p>
 <table>
-<tr><th>来源</th><th>格式</th><th>示例</th></tr>
-<tr><td>csproj <code>VersionPrefix</code></td><td>三段</td><td>1.0.0</td></tr>
-<tr><td>Git tag</td><td>v 前缀</td><td>v1.0.0</td></tr>
-<tr><td>MSI <code>Version</code></td><td>三段</td><td>1.0.0</td></tr>
-<tr><td><code>AssemblyVersion</code></td><td>四段</td><td>1.0.0.0</td></tr>
+<thead><tr><th>来源</th><th>格式</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td>csproj <code>VersionPrefix</code></td><td>三段</td><td><code>1.0.0</code></td></tr>
+<tr><td>Git tag</td><td><code>v</code> 前缀</td><td><code>v1.0.0</code></td></tr>
+<tr><td>MSI <code>Version</code></td><td>三段</td><td><code>1.0.0</code></td></tr>
+<tr><td><code>AssemblyVersion</code></td><td>四段</td><td><code>1.0.0.0</code></td></tr>
+</tbody>
 </table>
+<blockquote><p>CI 从 <code>${{ github.ref_name }}</code>（tag）去 <code>v</code> 前缀得 MSI 版本，保持一致。</p></blockquote>
 </section>
 
+<hr>
+
 <section id="s7">
-<h2>7. 升级流程（MajorUpgrade 原理）</h2>
-<div class="flow">
-<span>装 v1.0.0</span><span class="arrow">→</span>
-<span>启动检测新版 v1.1.0</span><span class="arrow">→</span>
-<span>下载 v1.1.0.msi</span><span class="arrow">→</span>
-<span>msiexec /qb</span><span class="arrow">→</span>
-<span>同 UpgradeCode + 高 Version</span><span class="arrow">→</span>
-<span>卸载旧版 + 装新版</span>
-</div>
-<div class="callout warn"><b>⚠️ 升级时旧 exe 若运行会锁文件。</b>所以 <code>ApplyAsync</code> 先 <code>Environment.Exit(0)</code> 退出旧进程，再 <code>msiexec</code> 安装。路径 <code>[INSTALLFOLDER]MyQuicker.exe</code> 不变，开机自启键仍有效。</div>
+<h2>7. 升级流程（MajorUpgrade + 路径自愈 + 文件锁）</h2>
+
+<h3>7.1 升级原理</h3>
+<ol>
+<li>用户装 v1.0.0 → MSI 记录 ProductCode + UpgradeCode 到 <code>HKCU\Software\...\Uninstall</code>，<code>InstallPathReg</code> 写入 <code>HKCU\Software\aurora\InstallPath = &lt;实际路径&gt;</code>。</li>
+<li>发布 v1.1.0 → 用户应用启动检查到新版 → 下载 v1.1.0.msi。</li>
+<li><code>msiexec /i v1.1.0.msi /qb</code> → <strong>AppSearch 阶段</strong>：<code>RegistrySearch</code> 读 <code>InstallPath</code> → <code>INSTALLFOLDER</code> 属性 = 旧路径。</li>
+<li>MSI 检测到同 UpgradeCode、更高 Version → <code>MajorUpgrade</code> 先卸载 v1.0.0 再装 v1.1.0，安装路径沿用 <code>INSTALLFOLDER</code>（旧路径，不变）。</li>
+<li>旧 exe 被替换；开机自启键、<code>InstallPath</code> 键均指向同路径 <code>[INSTALLFOLDER]aurora.exe</code>，路径不变。</li>
+</ol>
+
+<h3>7.2 路径自愈机制（防自定义路径丢失）</h3>
+<p><code>WixUI_InstallDir</code> 静默安装（<code>/qb</code>）默认不读旧安装路径，<code>INSTALLFOLDER</code> 会回到 wxs 默认值 <code>%LocalAppData%\aurora</code>。本项目通过 <code>&lt;Property Id="INSTALLFOLDER"&gt;</code> + <code>&lt;RegistrySearch&gt;</code> 解决：</p>
+<ul>
+<li><strong>读</strong>：<code>AppSearch</code> 阶段（早于 <code>CostInitialize</code> 与 UI）从 <code>HKCU\Software\aurora\InstallPath</code> 捞回旧路径，写入 <code>INSTALLFOLDER</code> 属性。同名 Property 覆盖 Directory 默认值。</li>
+<li><strong>写</strong>：<code>InstallPathReg</code> 组件在安装时持久化 <code>[INSTALLFOLDER]</code> 到注册表。</li>
+<li><strong>回退</strong>：<code>Type="directory"</code> 验证目录存在；旧路径无效（用户手动删了）则置空，回退默认值，避免装到无效路径。</li>
+</ul>
+<p>这样无论 CLI、自动更新触发 <code>msiexec /i</code>，还是用户手动双击新版 MSI，都会先从注册表捞回上一次路径，<strong>MajorUpgrade 覆盖时路径恒定</strong>。</p>
+
+<h3>7.3 文件锁与进程强杀（先杀后清）</h3>
+<p>升级/卸载时旧 <code>aurora.exe</code> 若正在运行会锁文件，导致覆盖失败。双保险：</p>
+<ol>
+<li><strong>应用侧</strong>（<code>UpdateChecker.ApplyAsync</code>）：<code>Process.Start(msiexec)</code> 后立即 <code>Environment.Exit(0)</code> 自杀。</li>
+<li><strong>MSI 侧</strong>（<code>KillAurora</code> CustomAction）：<code>taskkill /f /im aurora.exe</code> 强杀残留，<code>Return="ignore"</code> 吞错（进程不在也不报错）。</li>
+</ol>
+<p><code>KillAurora</code> 锚定 <code>After="InstallValidate"</code>（<code>InstallExecuteSequence</code> 最早可用标准锚点），先于 <code>InstallInitialize</code> 执行，确保后续 <code>ProcessComponents</code>（MajorUpgrade 卸旧版、覆盖 exe）时文件已解锁。</p>
+
+<h3>7.4 纯卸载时序（先杀后清，0 字节残留）</h3>
+<pre><code>InstallValidate
+  → SetTaskkillPath → KillAurora          ← 强杀 aurora.exe，释放 debug.log 句柄
+  → SetCmdPath → CleanupRuntimeFiles      ← del settings.json/.tmp/debug.log/appsettings.json
+                                            （条件 REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE）
+→ InstallInitialize → ProcessComponents → InstallFinalize</code></pre>
+<p><strong>关键修正</strong>：早期实现 <code>CleanupRuntimeFiles</code>（<code>After="InstallValidate"</code>）跑在 <code>KillAurora</code>（<code>Before="InstallInitialize"</code>）之前，导致 aurora.exe 尚未强杀、仍持有 <code>debug.log</code> 句柄时 <code>del</code> 提前触发并失败。现调整为链式 <code>KillAurora → SetCmdPath → CleanupRuntimeFiles</code>，确保先杀进程后清文件，纯卸载 0 字节残留。升级时 <code>UPGRADINGPRODUCTCODE</code> 被设置（旧产品被 MajorUpgrade 卸载时的 MSI 内置属性），跳过清理保留 <code>settings.json</code>。<strong>注意</strong>：必须用 <code>UPGRADINGPRODUCTCODE</code> 而非 WiX 的 <code>WIX_UPGRADE_DETECTED</code>——后者仅新产品 session 可见，旧产品卸载上下文读不到，会误判为纯卸载从而删掉 <code>settings.json</code>（此 bug 由生命周期测试在阶段 2 捕获并修复）。</p>
 </section>
+
+<hr>
 
 <section id="s8">
 <h2>8. 测试清单</h2>
-<ul class="checklist">
-<li>本地 build-msi.ps1 生成 MSI</li>
-<li>双击 MSI 安装 → %LocalAppData%\MyQuicker\MyQuicker.exe 存在</li>
-<li>开始菜单出现 MyQuicker 快捷方式</li>
-<li>开机自启键写入 HKCU\...\Run</li>
-<li>控制面板「程序和功能」出现 MyQuicker 条目</li>
+<ul class="checkbox">
+<li>本地 <code>./installer/build-msi.ps1 -Version 1.0.0</code> 生成 MSI</li>
+<li>双击 MSI 安装 → <code>%LocalAppData%\aurora\aurora.exe</code> 存在</li>
+<li>开始菜单出现 aurora 快捷方式</li>
+<li>开机自启键写入 <code>HKCU\...\Run\aurora</code></li>
+<li>安装路径键写入 <code>HKCU\Software\aurora\InstallPath</code></li>
+<li>控制面板「程序和功能」出现 aurora 条目</li>
 <li>安装后 exe 运行，钩子/托盘/截图/设置全功能</li>
-<li>升级：装 v1.0.0 → v1.1.0 MSI 覆盖 → 旧版被替换，settings.json 保留</li>
-<li>降级：v1.1.0 已装 → 装 v1.0.0 → 提示无法降级</li>
-<li>自动更新：GitHub 发新 Release → 旧版启动检测 → 下载 MSI 静默升级</li>
-<li>卸载：exe、快捷方式、自启键、注册表条目全部清除</li>
+<li><strong>自定义路径升级测试</strong>：装 v1.0.0 到自定义路径 → 用 v1.1.0 MSI 静默升级 → 路径保持不变、设置保留</li>
+<li>升级测试：装 v1.0.0 → v1.1.0 MSI 覆盖 → 旧版本被替换，<code>settings.json</code> 保留</li>
+<li>降级测试：v1.1.0 已装 → 装 v1.0.0 → 提示无法降级</li>
+<li>自动更新：GitHub 发新 Release → 旧版启动检测到 → 下载 MSI 静默升级</li>
+<li>卸载：exe、快捷方式、自启键、路径键、注册表条目全部清除，运行时文件（settings.json/debug.log）0 残留</li>
 <li>干净 Windows（无 .NET）环境验证</li>
 </ul>
 </section>
 
+<hr>
+
 <section id="s9">
 <h2>9. 可选增强</h2>
 <table>
-<tr><th>增强</th><th>说明</th></tr>
-<tr><td>数字签名</td><td>signtool 签 MSI + exe，消除 SmartScreen（见 publish-guide §5）</td></tr>
-<tr><td>增量更新</td><td>MSI 不支持 delta；需小体积增量改 Velopack（放弃 MSI）</td></tr>
+<thead><tr><th>增强</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>数字签名</td><td><code>signtool sign</code> 签 MSI + exe，消除 SmartScreen 警告（见 publish-guide §5）</td></tr>
+<tr><td>增量更新</td><td>MSI 不支持 delta；若需小体积增量，改用 Velopack（但放弃 MSI）</td></tr>
 <tr><td>后台静默更新</td><td><code>msiexec /qn</code>（无 UI），不弹框直接升级</td></tr>
-<tr><td>更新通道</td><td>stable/beta：GitHub Releases prerelease 标记区分</td></tr>
-<tr><td>卸载清理</td><td>WiX 自定义 action 清理 settings.json（默认保留用户数据）</td></tr>
-<tr><td>多语言</td><td>WiX 多语种资源（当前简中 2052/936）</td></tr>
+<tr><td>更新通道</td><td>stable/beta：GitHub Releases 用 prerelease 标记区分</td></tr>
+<tr><td>多语言</td><td>WiX <code>ui:WixUI</code> 多语种资源（当前简中 2052/936）</td></tr>
+</tbody>
 </table>
-<div class="callout">本文档是 <code>docs/publish-guide.md</code> 第 4、6 节的 MSI 方案落地。发布前补齐：csproj 版本号 + ApplicationIcon + LICENSE + MyQuicker.wxs（替换 4 个 GUID）+ UpdateChecker.cs + release.yml。</div>
 </section>
 
-</main>
+<hr>
+
+<section id="appendix">
+<h2>附：与 publish-guide 的关系</h2>
+<p>本文档是 <code>docs/publish-guide.md</code> 第 4 节（安装包）和第 6 节（自动更新）的 <strong>MSI 方案落地</strong>。其余（版本号、签名、CI 渠道、许可证、检查清单）仍以 publish-guide 为准。</p>
+<p>发布前补齐：</p>
+<ol>
+<li>csproj 版本号 + <code>ApplicationIcon</code></li>
+<li><code>LICENSE</code></li>
+<li><code>installer/aurora.wxs</code>（GUID 已就位）</li>
+<li><code>src/Services/UpdateChecker.cs</code>（仓库地址已对齐 <code>chengjp0825/aurora</code>）</li>
+<li><code>.github/workflows/release.yml</code></li>
+</ol>
+</section>
+
 </body>
 </html>

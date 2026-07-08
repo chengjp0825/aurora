@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using MyQuicker.Domain.DTO;
+using Aurora.Domain.DTO;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>纯轨迹画圈触发器：维护滑动时间窗并做几何判定。</summary>
 public sealed class CircleGestureTrigger : ITrigger

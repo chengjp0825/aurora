@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Threading.Tasks;
 
-namespace MyQuicker.Domain.Runtime;
+namespace Aurora.Domain.Runtime;
 
 /// <summary>
 /// 截图覆盖层 seam：在全屏底图上让用户选择目标区域，返回物理屏幕坐标系中的矩形。

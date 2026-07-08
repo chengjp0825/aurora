@@ -13,9 +13,9 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using MyQuicker.Domain.DTO;
-using MyQuicker.Interop;
-using MyQuicker.Services;
+using Aurora.Domain.DTO;
+using Aurora.Interop;
+using Aurora.Services;
 using Clipboard = System.Windows.Clipboard;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using Brush = System.Windows.Media.Brush;
@@ -29,7 +29,7 @@ using Shape = System.Windows.Shapes.Shape;
 using ShapePath = System.Windows.Shapes.Path;
 using TextBox = System.Windows.Controls.TextBox;
 
-namespace MyQuicker.UI;
+namespace Aurora.UI;
 
 /// <summary>
 /// 贴图常驻窗口：把一张截图钉在桌面上，可拖拽、缩放、旋转、镜像、调透明度，
@@ -1157,7 +1157,7 @@ public partial class PinWindow : Window
 
     private async Task OpenAsFileAsync()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"myquicker_pin_{System.Guid.NewGuid():N}.png");
+        string path = Path.Combine(Path.GetTempPath(), $"Aurora_pin_{System.Guid.NewGuid():N}.png");
         BitmapSource composite = RenderComposite();
         await Task.Run(() =>
         {
